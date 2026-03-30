@@ -1,0 +1,35 @@
+body {
+    background: linear-gradient(to right, #fff6e5, #ffe0c3);
+}
+
+.card {
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+    transition: 0.3s;
+}
+
+.card:hover {
+    transform: scale(1.02);
+}
+
+.title {
+    color: #8B4513;
+    font-size: 22px;
+}
+
+.price {
+    color: #ff6600;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.stok {
+    background: #28a745;
+    color: white;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+}
