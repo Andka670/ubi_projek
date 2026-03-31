@@ -193,21 +193,6 @@ section[data-testid="stSidebar"] {
 }
 /* ===== FIX SELECTBOX ===== */
 
-/* text di selectbox */
-div[data-baseweb="select"] span {
-    color: black !important;
-}
-
-/* input di selectbox */
-div[data-baseweb="select"] input {
-    color: black !important;
-}
-
-/* dropdown menu */
-ul[role="listbox"] li {
-    color: black !important;
-}
-
 /* hover item dropdown */
 ul[role="listbox"] li:hover {
     background: #eee !important;
