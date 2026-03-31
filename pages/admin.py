@@ -62,11 +62,6 @@ h1, h2, h3, h4, h5, h6, p, span, label, div {
 input, textarea {
     color: white !important;
 }
-
-/* Selectbox */
-div[data-baseweb="select"] * {
-    color: white !important;
-}
 /* HEADER (judul expander) */
 details summary {
     color: white !important;
