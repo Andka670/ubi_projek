@@ -191,14 +191,27 @@ section[data-testid="stSidebar"] {
     font-weight: bold;
     color: #34d399;
 }
-/* ===== FORCE SEMUA TEXT PUTIH ===== */
-* {
-    color: white !important;
+/* ===== FIX SELECTBOX ===== */
+
+/* text di selectbox */
+div[data-baseweb="select"] span {
+    color: black !important;
 }
 
-/* Khusus elemen Streamlit */
-h1, h2, h3, h4, h5, h6, p, span, label, div {
-    color: white !important;
+/* input di selectbox */
+div[data-baseweb="select"] input {
+    color: black !important;
+}
+
+/* dropdown menu */
+ul[role="listbox"] li {
+    color: black !important;
+}
+
+/* hover item dropdown */
+ul[role="listbox"] li:hover {
+    background: #eee !important;
+    color: black !important;
 }
 
 .stButton button[kind="primary"] {
