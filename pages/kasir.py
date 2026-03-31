@@ -201,11 +201,6 @@ h1, h2, h3, h4, h5, h6, p, span, label, div {
     color: white !important;
 }
 
-/* Input & form */
-input, textarea {
-    color: white !important;
-}
-
 .stButton button[kind="primary"] {
     background: linear-gradient(45deg, #10b981, #34d399);
     color: white !important;
