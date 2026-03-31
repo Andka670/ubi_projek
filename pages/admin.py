@@ -70,10 +70,6 @@ input, textarea {
     color: black !important;
 }
 
-/* Selectbox tetap default */
-div[data-baseweb="select"] * {
-    color: black !important;
-}
 
 /* HEADER (judul expander) */
 details summary {
