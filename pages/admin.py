@@ -48,7 +48,25 @@ details {
     margin-bottom: 10px;
     border: 1px solid rgba(255,255,255,0.2);
 }
+/* ===== FORCE SEMUA TEXT PUTIH ===== */
+* {
+    color: white !important;
+}
 
+/* Khusus elemen Streamlit */
+h1, h2, h3, h4, h5, h6, p, span, label, div {
+    color: white !important;
+}
+
+/* Input & form */
+input, textarea {
+    color: white !important;
+}
+
+/* Selectbox */
+div[data-baseweb="select"] * {
+    color: white !important;
+}
 /* HEADER (judul expander) */
 details summary {
     color: white !important;
