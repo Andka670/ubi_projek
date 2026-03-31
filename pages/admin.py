@@ -65,11 +65,6 @@ h1, h2, h3, h4, h5, h6, p, span, label {
 
 /* ===== EXCLUDE INPUT & SELECT ===== */
 
-/* Input text & textarea tetap normal */
-input, textarea {
-    color: black !important;
-}
-
 
 /* HEADER (judul expander) */
 details summary {
