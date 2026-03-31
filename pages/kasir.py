@@ -192,7 +192,7 @@ section[data-testid="stSidebar"] {
     color: #34d399;
 }
 /* Khusus elemen Streamlit */
-h1, h2, h3, h4, h5, h6, p, span, label, div {
+h1, h2, h3, h4, h5, h6, p, label {
     color: white !important;
 }
 .stButton button[kind="primary"] {
