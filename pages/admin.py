@@ -58,10 +58,7 @@ h1, h2, h3, h4, h5, h6, p, span, label, div {
     color: white !important;
 }
 
-/* Input & form */
-input, textarea {
-    color: white !important;
-}
+
 /* HEADER (judul expander) */
 details summary {
     color: white !important;
