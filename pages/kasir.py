@@ -191,13 +191,6 @@ section[data-testid="stSidebar"] {
     font-weight: bold;
     color: #34d399;
 }
-/* ===== FIX SELECTBOX ===== */
-
-/* hover item dropdown */
-ul[role="listbox"] li:hover {
-    background: #eee !important;
-    color: black !important;
-}
 
 .stButton button[kind="primary"] {
     background: linear-gradient(45deg, #10b981, #34d399);
