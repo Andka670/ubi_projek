@@ -48,16 +48,32 @@ details {
     margin-bottom: 10px;
     border: 1px solid rgba(255,255,255,0.2);
 }
-/* ===== FORCE SEMUA TEXT PUTIH ===== */
-* {
+/* ===== TEXT GLOBAL (KECUALI INPUT) ===== */
+body, .stApp {
+    color: white;
+}
+
+/* Judul & teks */
+h1, h2, h3, h4, h5, h6, p, span, label {
     color: white !important;
 }
 
-/* Khusus elemen Streamlit */
-h1, h2, h3, h4, h5, h6, p, span, label, div {
+/* Markdown */
+[data-testid="stMarkdownContainer"] {
     color: white !important;
 }
 
+/* ===== EXCLUDE INPUT & SELECT ===== */
+
+/* Input text & textarea tetap normal */
+input, textarea {
+    color: black !important;
+}
+
+/* Selectbox tetap default */
+div[data-baseweb="select"] * {
+    color: black !important;
+}
 
 /* HEADER (judul expander) */
 details summary {
