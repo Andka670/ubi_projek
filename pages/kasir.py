@@ -278,7 +278,10 @@ if menu == "🛒 Kasir":
             "harga": produk_db['harga'],
             "qty": qty,
             "subtotal": produk_db['harga'] * qty,
-            "stok": stok_terbaru
+            "stok": stok_terbaru,
+            "kode_promo": produk_db.get("kode_promo"),
+            "diskon": produk_db.get("diskon", 0),
+            "promo_aktif": produk_db.get("promo_aktif", False)
         })
 
         st.success("Berhasil ditambahkan!")
@@ -304,11 +307,26 @@ if menu == "🛒 Kasir":
             st.session_state.cart.pop(i)
             st.rerun()
 
+    total_akhir = total - (total * diskon / 100)
+    
     st.markdown(f"<div class='total'>Total: {rp(total)}</div>", unsafe_allow_html=True)
-
+    
+    if diskon > 0:
+        st.success(f"Promo {diskon}% aktif!")
+    
+    st.markdown(f"<div class='total'>Total Setelah Diskon: {rp(total_akhir)}</div>", unsafe_allow_html=True)
+    kode_input = st.text_input("🎟️ Kode Promo")
+    diskon = 0
+    
+    for item in st.session_state.cart:
+        if (
+            item.get("kode_promo") == kode_input.upper()
+            and item.get("promo_aktif")
+        ):
+            diskon = item.get("diskon", 0)
     bayar = st.number_input("Bayar", min_value=0)
 
-    kembali = bayar - total if bayar >= total else 0
+    kembali = bayar - total_akhir if bayar >= total_akhir else 0
 
     if bayar >= total and total > 0:
         st.success(f"Kembalian: {rp(kembali)}")
@@ -317,7 +335,7 @@ if menu == "🛒 Kasir":
 
         order_id = str(uuid.uuid4())
 
-        insert_order(order_id, nama, total)
+        insert_order(order_id, nama, total_akhir)
 
         for item in st.session_state.cart:
             insert_detail({
