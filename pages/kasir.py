@@ -404,25 +404,25 @@ if st.button("💾 Simpan Transaksi", type="primary"):
             }}
         
             #printArea {{
-                width: 58mm; /* 🔥 lebar struk */
-                margin: auto; /* 🔥 center biar ga melebar */
+                width: 58mm;
+                margin: auto;
                 font-size: 10px;
+        
+                transform: scale(0.7); /* 🔥 INI KUNCINYA */
+                transform-origin: top center;
             }}
         
             body {{
                 display: flex;
-                justify-content: center; /* 🔥 biar pas tengah */
-                align-items: flex-start;
+                justify-content: center;
             }}
         
             @page {{
-                size: auto; /* 🔥 biar ikut printer */
                 margin: 0;
             }}
         }}
         </style>
         """
-        
         st.components.v1.html(print_block, height=500)
         pdf = generate_pdf(order_id, nama, st.session_state.cart, total, bayar, kembali)
 
