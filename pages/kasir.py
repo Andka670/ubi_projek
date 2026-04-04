@@ -312,7 +312,7 @@ if menu == "🛒 Kasir":
     if diskon > 0:
         st.success(f"Promo {diskon}% aktif!")
     total_akhir = total - (total * diskon / 100)
-    st.markdown(f"<div class='total'>Total Setelah Diskon: {rp(total_akhir)}</div>", unsafe_allow_html=True)
+
 
     
     
@@ -348,7 +348,7 @@ if menu == "🛒 Kasir":
             update_stok(item['id'], item['stok'] - item['qty'])
 
         st.success("Transaksi berhasil!")
-
+        st.markdown(f"<div class='total'>Total Setelah Diskon: {rp(total_akhir)}</div>", unsafe_allow_html=True)
         struk_html = generate_struk_html(
             order_id,
             nama,
