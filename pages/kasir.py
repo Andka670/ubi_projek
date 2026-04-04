@@ -410,7 +410,7 @@ if st.button("💾 Simpan Transaksi", type="primary"):
         
             /* 🔥 CREDIT CARD MODE */
             #printArea {{
-                width: 320px;          /* ukuran credit card di browser */
+                width: 300px;          /* ukuran credit card di browser */
                 font-family: monospace;
                 font-size: 11px;
                 line-height: 1.2;
