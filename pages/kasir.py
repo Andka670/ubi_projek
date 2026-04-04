@@ -402,14 +402,14 @@ if st.button("💾 Simpan Transaksi", type="primary"):
             }}
         
             #printArea {{
-                width: 58mm; /* 🔥 ukuran struk */
+                width: 10mm; /* 🔥 ukuran struk */
                 font-size: 10px; /* 🔥 kecil saat print */
                 margin: 0;
                 padding: 0;
             }}
         
             @page {{
-                size: 58mm auto; /* 🔥 paksa ukuran kertas */
+                size: 10mm auto; /* 🔥 paksa ukuran kertas */
                 margin: 0;
             }}
         }}
