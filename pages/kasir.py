@@ -349,8 +349,6 @@ if menu == "🛒 Kasir":
 
         order_id = str(uuid.uuid4())
 
-        insert_order(order_id, nama, total_akhir)
-
         for item in st.session_state.cart:
             insert_detail({
                 "order_id": order_id,
