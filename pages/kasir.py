@@ -395,21 +395,28 @@ if st.button("💾 Simpan Transaksi", type="primary"):
         
         <style>
         @media print {{
-            body * {{ visibility: hidden; }}
+            body * {{
+                visibility: hidden;
+            }}
         
             #printArea, #printArea * {{
                 visibility: visible;
             }}
         
             #printArea {{
-                width: 10mm; /* 🔥 ukuran struk */
-                font-size: 10px; /* 🔥 kecil saat print */
-                margin: 0;
-                padding: 0;
+                width: 58mm; /* 🔥 lebar struk */
+                margin: auto; /* 🔥 center biar ga melebar */
+                font-size: 10px;
+            }}
+        
+            body {{
+                display: flex;
+                justify-content: center; /* 🔥 biar pas tengah */
+                align-items: flex-start;
             }}
         
             @page {{
-                size: 10mm auto; /* 🔥 paksa ukuran kertas */
+                size: auto; /* 🔥 biar ikut printer */
                 margin: 0;
             }}
         }}
@@ -417,7 +424,6 @@ if st.button("💾 Simpan Transaksi", type="primary"):
         """
         
         st.components.v1.html(print_block, height=500)
-
         pdf = generate_pdf(order_id, nama, st.session_state.cart, total, bayar, kembali)
 
         st.download_button(
