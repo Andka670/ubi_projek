@@ -287,9 +287,13 @@ if menu == "🛒 Kasir":
         st.success("Berhasil ditambahkan!")
 
     st.subheader("🛍️ Keranjang")
+
     kode_input = st.text_input("🎟️ Kode Promo")
+
     total = 0
     diskon = 0
+
+    # ================= LIST KERANJANG =================
     for i, item in enumerate(st.session_state.cart):
         total += item['subtotal']
 
@@ -306,30 +310,41 @@ if menu == "🛒 Kasir":
         if st.button(f"❌ Hapus {item['nama']}", key=f"del_{i}"):
             st.session_state.cart.pop(i)
             st.rerun()
-    
+
+    # ================= CEK PROMO =================
+    if kode_input:
+        for item in st.session_state.cart:
+            if (
+                item.get("kode_promo")
+                and item.get("promo_aktif")
+                and item.get("kode_promo").upper() == kode_input.upper()
+            ):
+                diskon = item.get("diskon", 0)
+                break
+
+    # ================= TOTAL =================
     st.markdown(f"<div class='total'>Total: {rp(total)}</div>", unsafe_allow_html=True)
-    
+
+    # ================= INFO PROMO =================
     if diskon > 0:
-        st.success(f"Promo {diskon}% aktif!")
+        st.success(f"🎉 Promo {diskon}% aktif!")
+    elif kode_input:
+        st.error("❌ Kode promo tidak valid")
+
+    # ================= HITUNG TOTAL AKHIR =================
     total_akhir = total - (total * diskon / 100)
 
+    st.markdown(f"<div class='total'>Total Setelah Diskon: {rp(total_akhir)}</div>", unsafe_allow_html=True)
 
-    
-    
-    for item in st.session_state.cart:
-        if (
-            item.get("kode_promo") == kode_input.upper()
-            and item.get("promo_aktif")
-        ):
-            diskon = item.get("diskon", 0)
-
+    # ================= PEMBAYARAN =================
     bayar = st.number_input("Bayar", min_value=0)
 
     kembali = bayar - total_akhir if bayar >= total_akhir else 0
 
-    if bayar >= total and total > 0:
+    if bayar >= total_akhir and total > 0:
         st.success(f"Kembalian: {rp(kembali)}")
 
+    # ================= SIMPAN =================
     if st.button("💾 Simpan Transaksi", type="primary"):
 
         order_id = str(uuid.uuid4())
@@ -348,7 +363,7 @@ if menu == "🛒 Kasir":
             update_stok(item['id'], item['stok'] - item['qty'])
 
         st.success("Transaksi berhasil!")
-        st.markdown(f"<div class='total'>Total Setelah Diskon: {rp(total_akhir)}</div>", unsafe_allow_html=True)
+
         struk_html = generate_struk_html(
             order_id,
             nama,
