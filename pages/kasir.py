@@ -342,6 +342,20 @@ if menu == "🛒 Kasir":
 # ================= SIMPAN =================
 if st.button("💾 Simpan Transaksi", type="primary"):
 
+    # ❌ CEK KERANJANG KOSONG
+    if len(st.session_state.cart) == 0:
+        st.error("❌ Keranjang kosong!")
+        st.stop()
+
+    # ❌ CEK BAYAR BELUM DIISI / 0
+    if bayar <= 0:
+        st.error("❌ Uang bayar belum diisi!")
+        st.stop()
+
+    # ❌ CEK BAYAR KURANG
+    if bayar < total_akhir:
+        st.error("❌ Uang tidak cukup!")
+        st.stop()
     try:
         order_id = str(uuid.uuid4())
 
