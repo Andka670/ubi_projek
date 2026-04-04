@@ -56,7 +56,7 @@ def get_nama_kasir():
     return "KASIR"
 
 
-def generate_struk_html(order_id, nama, items, total, bayar, kembali):
+def generate_struk_html(order_id, nama, items, total, diskon, total_akhir, bayar, kembali):
     item_text = ""
 
     for i in items:
@@ -87,10 +87,11 @@ def generate_struk_html(order_id, nama, items, total, bayar, kembali):
         {item_text}
 
         ----------------------<br>
-        TOTAL   : {rp(total)}<br>
-        BAYAR   : {rp(bayar)}<br>
-        KEMBALI : {rp(kembali)}<br>
-
+        TOTAL ASLI : {rp(total)}<br>
+        DISKON     : {diskon}%<br>
+        TOTAL BAYAR: {rp(total_akhir)}<br>
+        BAYAR      : {rp(bayar)}<br>
+        KEMBALI    : {rp(kembali)}<br>
         ----------------------<br>
         <center>TERIMA KASIH</center>
     </div>
@@ -367,6 +368,8 @@ if st.button("💾 Simpan Transaksi", type="primary"):
             nama,
             st.session_state.cart,
             total,
+            diskon,
+            total_akhir,
             bayar,
             kembali
         )
