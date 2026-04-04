@@ -256,7 +256,7 @@ if menu == "🛒 Kasir":
     produk = st.selectbox("Pilih Produk", produk_list, format_func=format_produk)
 
     qty = st.number_input("Jumlah", min_value=1)
-    kode_input = st.text_input("🎟️ Kode Promo")
+
     if st.button("➕ Tambah ke Keranjang", type="primary"):
 
         produk_db = supabase.table("produk").select("*").eq("id", produk['id']).execute().data
@@ -287,7 +287,7 @@ if menu == "🛒 Kasir":
         st.success("Berhasil ditambahkan!")
 
     st.subheader("🛍️ Keranjang")
-
+    kode_input = st.text_input("🎟️ Kode Promo")
     total = 0
 
     for i, item in enumerate(st.session_state.cart):
