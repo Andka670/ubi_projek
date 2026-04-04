@@ -397,6 +397,9 @@ if st.button("💾 Simpan Transaksi", type="primary"):
 
         # 🔥 reset cart
         st.session_state.cart = []
+    except Exception as e:
+        st.error(f"❌ Gagal simpan: {e}")
+        st.stop()
 # ================= LAPORAN =================
 else:
 
