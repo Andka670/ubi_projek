@@ -338,13 +338,16 @@ if menu == "🛒 Kasir":
     if bayar >= total_akhir and total > 0:
         st.success(f"Kembalian: {rp(kembali)}")
 
-    # ================= SIMPAN =================
-    if st.button("💾 Simpan Transaksi", type="primary"):
+# ================= SIMPAN =================
+if st.button("💾 Simpan Transaksi", type="primary"):
 
+    try:
         order_id = str(uuid.uuid4())
-        
+
+        # 🔥 simpan ke pemesanan (pakai total_akhir)
         insert_order(order_id, nama, total_akhir)
-        
+
+        # 🔥 simpan detail
         for item in st.session_state.cart:
             insert_detail({
                 "order_id": order_id,
@@ -354,14 +357,11 @@ if menu == "🛒 Kasir":
                 "subtotal": int(item['subtotal'])
             })
 
-                update_stok(item['id'], item['stok'] - item['qty'])
-
-            except Exception as e:
-                st.error(f"❌ Gagal simpan: {e}")
-                st.stop()
+            update_stok(item['id'], item['stok'] - item['qty'])
 
         st.success("Transaksi berhasil!")
 
+        # ================= STRUK =================
         struk_html = generate_struk_html(
             order_id,
             nama,
@@ -395,7 +395,12 @@ if menu == "🛒 Kasir":
             mime="application/pdf"
         )
 
+        # 🔥 reset cart
         st.session_state.cart = []
+
+    except Exception as e:
+        st.error(f"❌ Gagal simpan: {e}")
+        st.stop()
 
 # ================= LAPORAN =================
 else:
