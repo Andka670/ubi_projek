@@ -311,7 +311,7 @@ if menu == "🛒 Kasir":
     
     if diskon > 0:
         st.success(f"Promo {diskon}% aktif!")
-    
+    total_akhir = total - (total * diskon / 100)
     st.markdown(f"<div class='total'>Total Setelah Diskon: {rp(total_akhir)}</div>", unsafe_allow_html=True)
 
     
@@ -322,7 +322,7 @@ if menu == "🛒 Kasir":
             and item.get("promo_aktif")
         ):
             diskon = item.get("diskon", 0)
-total_akhir = total - (total * diskon / 100)
+
     bayar = st.number_input("Bayar", min_value=0)
 
     kembali = bayar - total_akhir if bayar >= total_akhir else 0
