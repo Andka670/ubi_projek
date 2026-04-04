@@ -68,7 +68,7 @@ def generate_struk_html(order_id, nama, items, total, diskon, total_akhir, bayar
 
     html = f"""
     <div style="
-        width: 280px;
+        width: 150px;
         font-family: monospace;
         font-size: 12px;
         padding: 10px;
