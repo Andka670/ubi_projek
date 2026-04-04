@@ -404,20 +404,14 @@ if st.button("💾 Simpan Transaksi", type="primary"):
             }}
         
             #printArea {{
-                width: 58mm;
-                margin: auto;
-                font-size: 10px;
-        
-                transform: scale(0.20); /* 🔥 INI KUNCINYA */
-                transform-origin: top center;
-            }}
-        
-            body {{
-                display: flex;
-                justify-content: center;
+                width: 58mm;          /* 🔥 ukuran struk asli */
+                font-size: 11px;      /* 🔥 ukuran teks normal struk */
+                margin: 0 auto;
+                padding: 0;
             }}
         
             @page {{
+                size: 58mm auto;      /* 🔥 paksa ukuran kertas */
                 margin: 0;
             }}
         }}
