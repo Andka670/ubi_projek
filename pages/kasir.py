@@ -408,29 +408,25 @@ if st.button("💾 Simpan Transaksi", type="primary"):
                 visibility: visible;
             }}
         
-            #printArea {
-                width: 300px;
+            /* 🔥 CREDIT CARD MODE */
+            #printArea {{
+                width: 320px;          /* ukuran credit card di browser */
                 font-family: monospace;
                 font-size: 11px;
                 line-height: 1.2;
                 margin: 0 auto;
-            }
-        
-            /* 🔥 KUNCI: paksa halaman A4 tetap center */
-            html, body {{
-                width: 100%;
-                display: flex;
-                justify-content: center;
-                align-items: flex-start;
+                padding: 5px;
+                border: 1px dashed #000;
             }}
+        }}
         
-            @page {{
-                size: A4;   /* karena printer kamu cuma A4 */
-                margin: 10mm;
-            }}
+        @page {{
+            size: 85.6mm 54mm;  /* 🔥 ini ukuran credit card asli */
+            margin: 0;
         }}
         </style>
         """
+        
         st.components.v1.html(print_block, height=500)
         pdf = generate_pdf(order_id, nama, st.session_state.cart, total, bayar, kembali)
 
