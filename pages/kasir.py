@@ -68,7 +68,7 @@ def generate_struk_html(order_id, nama, items, total, diskon, total_akhir, bayar
 
     html = f"""
     <div style="
-        width: 150px;
+        width: 280px;
         font-family: monospace;
         font-size: 12px;
         padding: 10px;
@@ -390,17 +390,32 @@ if st.button("💾 Simpan Transaksi", type="primary"):
 
         print_block = f"""
         <div id="printArea">{struk_html}</div>
-
+        
         <button onclick="window.print()">PRINT</button>
-
+        
         <style>
         @media print {{
             body * {{ visibility: hidden; }}
-            #printArea, #printArea * {{ visibility: visible; }}
+        
+            #printArea, #printArea * {{
+                visibility: visible;
+            }}
+        
+            #printArea {{
+                width: 58mm; /* 🔥 ukuran struk */
+                font-size: 10px; /* 🔥 kecil saat print */
+                margin: 0;
+                padding: 0;
+            }}
+        
+            @page {{
+                size: 58mm auto; /* 🔥 paksa ukuran kertas */
+                margin: 0;
+            }}
         }}
         </style>
         """
-
+        
         st.components.v1.html(print_block, height=500)
 
         pdf = generate_pdf(order_id, nama, st.session_state.cart, total, bayar, kembali)
