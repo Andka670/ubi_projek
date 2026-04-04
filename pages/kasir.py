@@ -408,7 +408,7 @@ if st.button("💾 Simpan Transaksi", type="primary"):
                 margin: auto;
                 font-size: 10px;
         
-                transform: scale(0.1); /* 🔥 INI KUNCINYA */
+                transform: scale(0.20); /* 🔥 INI KUNCINYA */
                 transform-origin: top center;
             }}
         
