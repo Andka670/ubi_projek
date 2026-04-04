@@ -346,12 +346,11 @@ if menu == "🛒 Kasir":
         for item in st.session_state.cart:
             try:
                 insert_detail({
-                    "id": str(uuid.uuid4()),  # 🔥 anti error PK
                     "order_id": order_id,
                     "produk": str(item['nama']),
                     "harga": int(item['harga']),
                     "jumlah": int(item['qty']),
-                    "subtotal": int(item['subtotal']),
+                    "subtotal": int(item['subtotal'])
                 })
 
                 update_stok(item['id'], item['stok'] - item['qty'])
