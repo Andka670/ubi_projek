@@ -306,8 +306,6 @@ if menu == "🛒 Kasir":
         if st.button(f"❌ Hapus {item['nama']}", key=f"del_{i}"):
             st.session_state.cart.pop(i)
             st.rerun()
-
-    total_akhir = total - (total * diskon / 100)
     
     st.markdown(f"<div class='total'>Total: {rp(total)}</div>", unsafe_allow_html=True)
     
@@ -324,6 +322,7 @@ if menu == "🛒 Kasir":
             and item.get("promo_aktif")
         ):
             diskon = item.get("diskon", 0)
+    total_akhir = total - (total * diskon / 100)
     bayar = st.number_input("Bayar", min_value=0)
 
     kembali = bayar - total_akhir if bayar >= total_akhir else 0
