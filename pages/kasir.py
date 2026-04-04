@@ -289,7 +289,7 @@ if menu == "🛒 Kasir":
     st.subheader("🛍️ Keranjang")
     kode_input = st.text_input("🎟️ Kode Promo")
     total = 0
-
+    diskon = 0
     for i, item in enumerate(st.session_state.cart):
         total += item['subtotal']
 
@@ -316,7 +316,7 @@ if menu == "🛒 Kasir":
     
     st.markdown(f"<div class='total'>Total Setelah Diskon: {rp(total_akhir)}</div>", unsafe_allow_html=True)
 
-    diskon = 0
+    
     
     for item in st.session_state.cart:
         if (
