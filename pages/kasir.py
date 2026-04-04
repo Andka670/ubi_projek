@@ -351,8 +351,7 @@ if menu == "🛒 Kasir":
                     "produk": str(item['nama']),
                     "harga": int(item['harga']),
                     "jumlah": int(item['qty']),
-                    "subtotal": int(item['subtotal']),
-                    "created_at": datetime.now().isoformat()  # 🔥 anti error wajib
+                    "subtotal": int(item['subtotal'])
                 })
 
                 update_stok(item['id'], item['stok'] - item['qty'])
