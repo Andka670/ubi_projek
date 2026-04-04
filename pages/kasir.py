@@ -408,11 +408,13 @@ if st.button("💾 Simpan Transaksi", type="primary"):
                 visibility: visible;
             }}
         
-            #printArea {{
-                width: 58mm;              /* bentuk struk */
+            #printArea {
+                width: 300px;
+                font-family: monospace;
                 font-size: 11px;
+                line-height: 1.2;
                 margin: 0 auto;
-            }}
+            }
         
             /* 🔥 KUNCI: paksa halaman A4 tetap center */
             html, body {{
