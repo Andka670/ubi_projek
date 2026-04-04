@@ -256,7 +256,7 @@ if menu == "🛒 Kasir":
     produk = st.selectbox("Pilih Produk", produk_list, format_func=format_produk)
 
     qty = st.number_input("Jumlah", min_value=1)
-
+    kode_input = st.text_input("🎟️ Kode Promo")
     if st.button("➕ Tambah ke Keranjang", type="primary"):
 
         produk_db = supabase.table("produk").select("*").eq("id", produk['id']).execute().data
@@ -306,7 +306,7 @@ if menu == "🛒 Kasir":
         if st.button(f"❌ Hapus {item['nama']}", key=f"del_{i}"):
             st.session_state.cart.pop(i)
             st.rerun()
-    kode_input = st.text_input("🎟️ Kode Promo")
+
     total_akhir = total - (total * diskon / 100)
     
     st.markdown(f"<div class='total'>Total: {rp(total)}</div>", unsafe_allow_html=True)
