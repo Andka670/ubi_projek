@@ -322,7 +322,7 @@ if menu == "🛒 Kasir":
             and item.get("promo_aktif")
         ):
             diskon = item.get("diskon", 0)
-    total_akhir = total - (total * diskon / 100)
+total_akhir = total - (total * diskon / 100)
     bayar = st.number_input("Bayar", min_value=0)
 
     kembali = bayar - total_akhir if bayar >= total_akhir else 0
