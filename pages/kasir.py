@@ -395,6 +395,11 @@ if st.button("💾 Simpan Transaksi", type="primary"):
         
         <style>
         @media print {{
+            body {{
+                margin: 0;
+                padding: 0;
+            }}
+        
             body * {{
                 visibility: hidden;
             }}
@@ -404,19 +409,20 @@ if st.button("💾 Simpan Transaksi", type="primary"):
             }}
         
             #printArea {{
-                width: 58mm;          /* 🔥 ukuran struk asli */
-                font-size: 11px;      /* 🔥 ukuran teks normal struk */
-                margin: 0 auto;
+                width: 58mm;
+                font-size: 11px;
+                margin: 0;
                 padding: 0;
             }}
+        }}
         
-            @page {{
-                size: 58mm auto;      /* 🔥 paksa ukuran kertas */
-                margin: 0;
-            }}
+        @page {{
+            size: 58mm auto;   /* 🔥 INI YANG PENTING */
+            margin: 0;
         }}
         </style>
         """
+        
         st.components.v1.html(print_block, height=500)
         pdf = generate_pdf(order_id, nama, st.session_state.cart, total, bayar, kembali)
 
