@@ -337,6 +337,9 @@ elif menu == "📦 Produk":
         stok = st.number_input("Stok")
         desk = st.text_area("Deskripsi")
         img = st.file_uploader("Upload gambar")
+        kode_promo = st.text_input("Kode Promo (opsional)")
+        diskon = st.number_input("Diskon (%)", min_value=0, max_value=100)
+        promo_aktif = st.checkbox("Aktifkan Promo")
 
         if st.button("Simpan", type="primary"):
             url_img = upload_gambar(img)
@@ -345,7 +348,10 @@ elif menu == "📦 Produk":
                 "harga": harga,
                 "stok": stok,
                 "deskripsi": desk,
-                "gambar": url_img
+                "gambar": url_img,
+                "kode_promo": kode_promo.upper(),
+                "diskon": diskon,
+                "promo_aktif": promo_aktif
             })
             st.success("Berhasil!")
             st.rerun()
@@ -387,7 +393,9 @@ elif menu == "📦 Produk":
                 stok_b = st.number_input("Stok", value=item['stok'], key="s"+id_str)
                 desk_b = st.text_area("Desk", item.get('deskripsi',''), key="x"+id_str)
                 img_b = st.file_uploader("Ganti gambar", key="i"+id_str)
-
+                kode_b = st.text_input("Kode Promo", item.get("kode_promo",""), key="kp"+id_str)
+                diskon_b = st.number_input("Diskon (%)", value=item.get("diskon",0), key="dk"+id_str)
+                promo_b = st.checkbox("Promo Aktif", value=item.get("promo_aktif",False), key="pb"+id_str)
                 if st.button("Update", key="u"+id_str, type="primary"):
                     url_img = item.get("gambar")
                     if img_b:
@@ -398,7 +406,10 @@ elif menu == "📦 Produk":
                         "harga": harga_b,
                         "stok": stok_b,
                         "deskripsi": desk_b,
-                        "gambar": url_img
+                        "gambar": url_img,
+                        "kode_promo": kode_b.upper(),
+                        "diskon": diskon_b,
+                        "promo_aktif": promo_b
                     })
                     st.rerun()
 
