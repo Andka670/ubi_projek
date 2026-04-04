@@ -342,16 +342,17 @@ if menu == "🛒 Kasir":
     if st.button("💾 Simpan Transaksi", type="primary"):
 
         order_id = str(uuid.uuid4())
-
+        
+        insert_order(order_id, nama, total_akhir)
+        
         for item in st.session_state.cart:
-            try:
-                insert_detail({
-                    "order_id": order_id,
-                    "produk": str(item['nama']),
-                    "harga": int(item['harga']),
-                    "jumlah": int(item['qty']),
-                    "subtotal": int(item['subtotal'])
-                })
+            insert_detail({
+                "order_id": order_id,
+                "produk": item['nama'],
+                "harga": int(item['harga']),
+                "jumlah": int(item['qty']),
+                "subtotal": int(item['subtotal'])
+            })
 
                 update_stok(item['id'], item['stok'] - item['qty'])
 
