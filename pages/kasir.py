@@ -239,7 +239,6 @@ if menu == "🛒 Kasir":
 
     produk_list = get_produk()
 
-    # 🔥 REPLACE INPUT MANUAL
     nama = get_nama_kasir()
     st.info(f"Kasir: {nama}")
 
@@ -275,9 +274,9 @@ if menu == "🛒 Kasir":
         st.session_state.cart.append({
             "id": produk_db['id'],
             "nama": produk_db['nama'],
-            "harga": produk_db['harga'],
-            "qty": qty,
-            "subtotal": produk_db['harga'] * qty,
+            "harga": int(produk_db['harga']),
+            "qty": int(qty),
+            "subtotal": int(produk_db['harga']) * int(qty),
             "stok": stok_terbaru,
             "kode_promo": produk_db.get("kode_promo"),
             "diskon": produk_db.get("diskon", 0),
@@ -293,9 +292,8 @@ if menu == "🛒 Kasir":
     total = 0
     diskon = 0
 
-    # ================= LIST KERANJANG =================
     for i, item in enumerate(st.session_state.cart):
-        total += item['subtotal']
+        total += int(item['subtotal'])
 
         st.markdown(f"""
         <div class="card">
@@ -319,24 +317,20 @@ if menu == "🛒 Kasir":
                 and item.get("promo_aktif")
                 and item.get("kode_promo").upper() == kode_input.upper()
             ):
-                diskon = item.get("diskon", 0)
+                diskon = int(item.get("diskon", 0))
                 break
 
-    # ================= TOTAL =================
     st.markdown(f"<div class='total'>Total: {rp(total)}</div>", unsafe_allow_html=True)
 
-    # ================= INFO PROMO =================
     if diskon > 0:
         st.success(f"🎉 Promo {diskon}% aktif!")
     elif kode_input:
         st.error("❌ Kode promo tidak valid")
 
-    # ================= HITUNG TOTAL AKHIR =================
-    total_akhir = total - (total * diskon / 100)
+    total_akhir = int(total - (total * diskon / 100))
 
     st.markdown(f"<div class='total'>Total Setelah Diskon: {rp(total_akhir)}</div>", unsafe_allow_html=True)
 
-    # ================= PEMBAYARAN =================
     bayar = st.number_input("Bayar", min_value=0)
 
     kembali = bayar - total_akhir if bayar >= total_akhir else 0
@@ -350,15 +344,22 @@ if menu == "🛒 Kasir":
         order_id = str(uuid.uuid4())
 
         for item in st.session_state.cart:
-            insert_detail({
-                "order_id": order_id,
-                "produk": item['nama'],
-                "harga": item['harga'],
-                "jumlah": item['qty'],
-                "subtotal": item['subtotal']
-            })
+            try:
+                insert_detail({
+                    "id": str(uuid.uuid4()),  # 🔥 anti error PK
+                    "order_id": order_id,
+                    "produk": str(item['nama']),
+                    "harga": int(item['harga']),
+                    "jumlah": int(item['qty']),
+                    "subtotal": int(item['subtotal']),
+                    "created_at": datetime.now().isoformat()  # 🔥 anti error wajib
+                })
 
-            update_stok(item['id'], item['stok'] - item['qty'])
+                update_stok(item['id'], item['stok'] - item['qty'])
+
+            except Exception as e:
+                st.error(f"❌ Gagal simpan: {e}")
+                st.stop()
 
         st.success("Transaksi berhasil!")
 
