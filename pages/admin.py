@@ -632,25 +632,28 @@ elif menu == "📈 Analisa Keuangan":
     fig2.update_layout(template="plotly_dark")
     st.plotly_chart(fig2, use_container_width=True)
 
-    # ================= INPUT PENGELUARAN =================
-    with st.expander("➕ Tambah Pengeluaran"):
-        nama = st.text_input("Nama Pengeluaran")
-        jumlah = st.number_input("Jumlah", min_value=0)
+# ================= INFO =================
+if total_pendapatan == 0:
+    st.info("ℹ️ Belum ada pendapatan di periode ini. Pengeluaran akan membuat laba minus.")
 
-        if st.button("Simpan Pengeluaran", type="primary"):
-            if not nama:
-                st.error("Nama wajib diisi!")
-            elif jumlah <= 0:
-                st.error("Jumlah harus > 0!")
-            else:
-                supabase.table("pengeluaran").insert({
-                    "nama": nama,
-                    "jumlah": jumlah
-                }).execute()
+# ================= INPUT PENGELUARAN =================
+with st.expander("➕ Tambah Pengeluaran"):
+    nama = st.text_input("Nama Pengeluaran")
+    jumlah = st.number_input("Jumlah", min_value=0)
 
-                st.success("Berhasil ditambahkan!")
-                st.rerun()
+    if st.button("Simpan Pengeluaran", type="primary"):
+        if not nama:
+            st.error("Nama wajib diisi!")
+        elif jumlah <= 0:
+            st.error("Jumlah harus > 0!")
+        else:
+            supabase.table("pengeluaran").insert({
+                "nama": nama,
+                "jumlah": jumlah
+            }).execute()
 
+            st.success("Berhasil ditambahkan!")
+            st.rerun()
     # ================= DATA =================
     if not df_pengeluaran.empty:
         st.markdown("### 📋 Data Pengeluaran")
