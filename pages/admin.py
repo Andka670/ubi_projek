@@ -3,7 +3,9 @@ from supabase import create_client
 import pandas as pd
 import uuid
 import plotly.express as px
-
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from io import BytesIO
 # ================= CONFIG =================
 st.set_page_config(
     page_title="Admin Panel",
@@ -235,7 +237,8 @@ def update_user(id, data):
 
 def delete_user(id):
     supabase.table("akun").delete().eq("id", id).execute()
-
+def get_pengeluaran():
+    return supabase.table("pengeluaran").select("*").execute().data
 # ================= UI =================
 st.markdown("<h1 style='color:white;'>Admin Panel</h1>", unsafe_allow_html=True)
 st.sidebar.markdown("<h2 style='color:white;'>MENU</h2>", unsafe_allow_html=True)
@@ -244,6 +247,7 @@ menu = st.sidebar.radio("", [
     "📊 Dashboard",
     "📦 Produk",
     "🧾 Transaksi",
+    "📈 Analisa Keuangan",
     "👤 Pengguna"
 ])
 
@@ -499,6 +503,134 @@ elif menu == "🧾 Transaksi":
 
     else:
         st.info("Belum ada transaksi")
+# ================= ANALISA KEUANGAN =================
+elif menu == "📈 Analisa Keuangan":
+
+    st.subheader("📊 Analisa Keuangan")
+
+    # ================= FILTER TANGGAL =================
+    colf1, colf2 = st.columns(2)
+    start = colf1.date_input("Dari Tanggal")
+    end = colf2.date_input("Sampai Tanggal")
+
+    # ================= DATA =================
+    transaksi = supabase.table("pemesanan").select("*").execute().data
+    detail = supabase.table("detail_pemesanan").select("*").execute().data
+    produk = supabase.table("produk").select("*").execute().data
+    pengeluaran = get_pengeluaran()
+
+    df_trx = pd.DataFrame(transaksi) if transaksi else pd.DataFrame()
+    df_detail = pd.DataFrame(detail) if detail else pd.DataFrame()
+    df_produk = pd.DataFrame(produk) if produk else pd.DataFrame()
+    df_pengeluaran = pd.DataFrame(pengeluaran) if pengeluaran else pd.DataFrame()
+
+    # ================= FILTER =================
+    if not df_trx.empty:
+        df_trx['tanggal'] = pd.to_datetime(df_trx['tanggal'])
+        df_trx = df_trx[
+            (df_trx['tanggal'].dt.date >= start) &
+            (df_trx['tanggal'].dt.date <= end)
+        ]
+
+    # ================= HITUNG =================
+    total_pendapatan = df_trx['total'].sum() if not df_trx.empty else 0
+
+    # ================= MODAL =================
+    total_modal = 0
+
+    if not df_detail.empty and not df_produk.empty:
+        df_merge = df_detail.merge(
+            df_produk,
+            left_on="produk",
+            right_on="nama",
+            how="left"
+        )
+
+        df_merge['modal'] = df_merge['harga'] * 0.7 * df_merge['jumlah']
+        total_modal = df_merge['modal'].sum()
+
+    # ================= PENGELUARAN =================
+    total_pengeluaran = 0
+    if not df_pengeluaran.empty:
+        df_pengeluaran['created_at'] = pd.to_datetime(df_pengeluaran['created_at'])
+        df_pengeluaran = df_pengeluaran[
+            (df_pengeluaran['created_at'].dt.date >= start) &
+            (df_pengeluaran['created_at'].dt.date <= end)
+        ]
+        total_pengeluaran = df_pengeluaran['jumlah'].sum()
+
+    # ================= LABA =================
+    laba_bersih = total_pendapatan - total_modal - total_pengeluaran
+
+    # ================= UI =================
+    col1, col2, col3, col4 = st.columns(4)
+
+    col1.metric("💰 Pendapatan", rp(total_pendapatan))
+    col2.metric("📦 Modal", rp(total_modal))
+    col3.metric("💸 Pengeluaran", rp(total_pengeluaran))
+    col4.metric("📈 Laba Bersih", rp(laba_bersih))
+
+    st.markdown("---")
+
+    # ================= GRAFIK HARIAN =================
+    if not df_trx.empty:
+        df_trx['hari'] = df_trx['tanggal'].dt.date
+        df_harian = df_trx.groupby('hari')['total'].sum().reset_index()
+
+        fig = px.line(df_harian, x="hari", y="total", title="Pendapatan Harian", markers=True)
+        fig.update_layout(template="plotly_dark")
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    # ================= GRAFIK LABA =================
+    df_chart = pd.DataFrame({
+        "Kategori": ["Pendapatan", "Modal", "Pengeluaran", "Laba"],
+        "Jumlah": [total_pendapatan, total_modal, total_pengeluaran, laba_bersih]
+    })
+
+    fig2 = px.bar(df_chart, x="Kategori", y="Jumlah", text_auto=True)
+    fig2.update_layout(template="plotly_dark")
+
+    st.plotly_chart(fig2, use_container_width=True)
+
+    # ================= INPUT PENGELUARAN =================
+    with st.expander("➕ Tambah Pengeluaran"):
+        nama = st.text_input("Nama Pengeluaran")
+        jumlah = st.number_input("Jumlah", min_value=0)
+
+        if st.button("Simpan Pengeluaran", type="primary"):
+            supabase.table("pengeluaran").insert({
+                "nama": nama,
+                "jumlah": jumlah
+            }).execute()
+
+            st.success("Berhasil ditambahkan!")
+            st.rerun()
+
+    # ================= PDF EXPORT =================
+    if st.button("📄 Export PDF"):
+
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer)
+        styles = getSampleStyleSheet()
+
+        content = []
+
+        content.append(Paragraph("LAPORAN KEUANGAN", styles["Title"]))
+        content.append(Spacer(1, 10))
+
+        content.append(Paragraph(f"Pendapatan: {rp(total_pendapatan)}", styles["Normal"]))
+        content.append(Paragraph(f"Modal: {rp(total_modal)}", styles["Normal"]))
+        content.append(Paragraph(f"Pengeluaran: {rp(total_pengeluaran)}", styles["Normal"]))
+        content.append(Paragraph(f"Laba Bersih: {rp(laba_bersih)}", styles["Normal"]))
+
+        doc.build(content)
+
+        st.download_button(
+            "⬇️ Download PDF",
+            buffer.getvalue(),
+            file_name="laporan_keuangan.pdf"
+        )
 # ================= PENGGUNA =================
 elif menu == "👤 Pengguna":
 
