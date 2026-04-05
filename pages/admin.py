@@ -559,20 +559,17 @@ elif menu == "📈 Analisa Keuangan":
     # ================= PENDAPATAN =================
     total_pendapatan = df_trx['total'].sum() if not df_trx.empty else 0
 
-    # ================= MODAL (REAL) =================
+    # ================= MODAL =================
     total_modal = 0
 
     if not df_detail.empty and not df_produk.empty and not df_trx.empty:
 
-        # ambil transaksi sesuai filter
         valid_order = df_trx['id'].tolist()
         df_detail = df_detail[df_detail['order_id'].isin(valid_order)]
 
-        # rapihin nama
         df_detail['produk'] = df_detail['produk'].astype(str).str.strip().str.lower()
         df_produk['nama'] = df_produk['nama'].astype(str).str.strip().str.lower()
 
-        # merge
         df_merge = df_detail.merge(
             df_produk,
             left_on="produk",
@@ -580,7 +577,6 @@ elif menu == "📈 Analisa Keuangan":
             how="left"
         )
 
-        # hitung modal dari harga_beli
         if 'harga_beli' in df_merge.columns:
             df_merge['modal'] = df_merge['harga_beli'].fillna(0) * df_merge['jumlah']
             total_modal = df_merge['modal'].sum()
@@ -613,6 +609,10 @@ elif menu == "📈 Analisa Keuangan":
 
     st.markdown("---")
 
+    # ================= INFO =================
+    if total_pendapatan == 0:
+        st.info("ℹ️ Belum ada pendapatan di periode ini. Pengeluaran akan membuat laba minus.")
+
     # ================= GRAFIK =================
     if not df_trx.empty:
         df_trx['hari'] = df_trx['tanggal'].dt.date
@@ -632,68 +632,64 @@ elif menu == "📈 Analisa Keuangan":
     fig2.update_layout(template="plotly_dark")
     st.plotly_chart(fig2, use_container_width=True)
 
-# ================= INFO =================
-if total_pendapatan == 0:
-    st.info("ℹ️ Belum ada pendapatan di periode ini. Pengeluaran akan membuat laba minus.")
+    # ================= INPUT PENGELUARAN =================
+    with st.expander("➕ Tambah Pengeluaran"):
+        nama = st.text_input("Nama Pengeluaran")
+        jumlah = st.number_input("Jumlah", min_value=0)
 
-# ================= INPUT PENGELUARAN =================
-with st.expander("➕ Tambah Pengeluaran"):
-    nama = st.text_input("Nama Pengeluaran")
-    jumlah = st.number_input("Jumlah", min_value=0)
+        if st.button("Simpan Pengeluaran", type="primary"):
+            if not nama:
+                st.error("Nama wajib diisi!")
+            elif jumlah <= 0:
+                st.error("Jumlah harus > 0!")
+            else:
+                if total_pendapatan == 0:
+                    st.warning("⚠️ Pendapatan masih 0. Laba akan minus!")
 
-    if st.button("Simpan Pengeluaran", type="primary"):
-        if not nama:
-            st.error("Nama wajib diisi!")
-        elif jumlah <= 0:
-            st.error("Jumlah harus > 0!")
-        else:
-            # ⚠️ hanya warning, bukan blok
-            if total_pendapatan == 0:
-                st.warning("⚠️ Pendapatan masih 0. Laba akan minus!")
+                supabase.table("pengeluaran").insert({
+                    "nama": nama,
+                    "jumlah": jumlah
+                }).execute()
 
-            supabase.table("pengeluaran").insert({
-                "nama": nama,
-                "jumlah": jumlah
-            }).execute()
+                st.success("Berhasil ditambahkan!")
+                st.rerun()
 
-            st.success("Berhasil ditambahkan!")
+    # ================= DATA =================
+    if not df_pengeluaran.empty:
+        st.markdown("### 📋 Data Pengeluaran")
+        st.dataframe(df_pengeluaran, use_container_width=True)
+
+    # ================= EXPORT PDF =================
+    if st.button("📄 Export PDF"):
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer)
+        styles = getSampleStyleSheet()
+
+        content = [
+            Paragraph("LAPORAN KEUANGAN", styles["Title"]),
+            Spacer(1, 10),
+            Paragraph(f"Pendapatan: {rp(total_pendapatan)}", styles["Normal"]),
+            Paragraph(f"Modal: {rp(total_modal)}", styles["Normal"]),
+            Paragraph(f"Pengeluaran: {rp(total_pengeluaran)}", styles["Normal"]),
+            Paragraph(f"Laba Bersih: {rp(laba_bersih)}", styles["Normal"]),
+        ]
+
+        doc.build(content)
+
+        st.download_button(
+            "⬇️ Download PDF",
+            buffer.getvalue(),
+            file_name="laporan_keuangan.pdf"
+        )
+
+    # ================= RESET =================
+    if st.button("🗑️ Reset Pengeluaran", type="secondary"):
+        try:
+            supabase.table("pengeluaran").delete().not_.is_("id", None).execute()
+            st.success("✅ Semua pengeluaran berhasil dihapus!")
             st.rerun()
-
-# ================= DATA =================
-if not df_pengeluaran.empty:
-    st.markdown("### 📋 Data Pengeluaran")
-    st.dataframe(df_pengeluaran, use_container_width=True)
-
-# ================= EXPORT PDF =================
-if st.button("📄 Export PDF"):
-
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer)
-    styles = getSampleStyleSheet()
-
-    content = [
-        Paragraph("LAPORAN KEUANGAN", styles["Title"]),
-        Spacer(1, 10),
-        Paragraph(f"Pendapatan: {rp(total_pendapatan)}", styles["Normal"]),
-        Paragraph(f"Modal: {rp(total_modal)}", styles["Normal"]),
-        Paragraph(f"Pengeluaran: {rp(total_pengeluaran)}", styles["Normal"]),
-        Paragraph(f"Laba Bersih: {rp(laba_bersih)}", styles["Normal"]),
-    ]
-
-    doc.build(content)
-
-    st.download_button(
-        "⬇️ Download PDF",
-        buffer.getvalue(),
-        file_name="laporan_keuangan.pdf"
-    )
-if st.button("🗑️ Reset Pengeluaran", type="secondary"):
-    try:
-        supabase.table("pengeluaran").delete().not_.is_("id", None).execute()
-        st.success("✅ Semua pengeluaran berhasil dihapus!")
-        st.rerun()
-    except Exception as e:
-        st.error(f"❌ Gagal reset: {e}")
+        except Exception as e:
+            st.error(f"❌ Gagal reset: {e}")
 # ================= PENGGUNA =================
 elif menu == "👤 Pengguna":
 
