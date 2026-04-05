@@ -632,59 +632,61 @@ elif menu == "📈 Analisa Keuangan":
     fig2.update_layout(template="plotly_dark")
     st.plotly_chart(fig2, use_container_width=True)
 
-    # ================= INFO =================
-    if total_pendapatan == 0:
-        st.info("ℹ️ Belum ada pendapatan di periode ini. Pengeluaran akan membuat laba minus.")
+# ================= INFO =================
+if total_pendapatan == 0:
+    st.info("ℹ️ Belum ada pendapatan di periode ini. Pengeluaran akan membuat laba minus.")
 
-    # ================= INPUT PENGELUARAN =================
-    with st.expander("➕ Tambah Pengeluaran"):
-        nama = st.text_input("Nama Pengeluaran")
-        jumlah = st.number_input("Jumlah", min_value=0)
+# ================= INPUT PENGELUARAN =================
+with st.expander("➕ Tambah Pengeluaran"):
+    nama = st.text_input("Nama Pengeluaran")
+    jumlah = st.number_input("Jumlah", min_value=0)
 
-        if st.button("Simpan Pengeluaran", type="primary"):
-            if not nama:
-                st.error("Nama wajib diisi!")
-            elif jumlah <= 0:
-                st.error("Jumlah harus > 0!")
-            elif total_pendapatan == 0:
-                st.error("❌ Tidak bisa tambah pengeluaran karena belum ada pendapatan!")
-            else:
-                supabase.table("pengeluaran").insert({
-                    "nama": nama,
-                    "jumlah": jumlah
-                }).execute()
+    if st.button("Simpan Pengeluaran", type="primary"):
+        if not nama:
+            st.error("Nama wajib diisi!")
+        elif jumlah <= 0:
+            st.error("Jumlah harus > 0!")
+        else:
+            # ⚠️ hanya warning, bukan blok
+            if total_pendapatan == 0:
+                st.warning("⚠️ Pendapatan masih 0. Laba akan minus!")
 
-                st.success("Berhasil ditambahkan!")
-                st.rerun()
+            supabase.table("pengeluaran").insert({
+                "nama": nama,
+                "jumlah": jumlah
+            }).execute()
 
-    # ================= DATA =================
-    if not df_pengeluaran.empty:
-        st.markdown("### 📋 Data Pengeluaran")
-        st.dataframe(df_pengeluaran, use_container_width=True)
+            st.success("Berhasil ditambahkan!")
+            st.rerun()
 
-    # ================= EXPORT PDF =================
-    if st.button("📄 Export PDF"):
+# ================= DATA =================
+if not df_pengeluaran.empty:
+    st.markdown("### 📋 Data Pengeluaran")
+    st.dataframe(df_pengeluaran, use_container_width=True)
 
-        buffer = BytesIO()
-        doc = SimpleDocTemplate(buffer)
-        styles = getSampleStyleSheet()
+# ================= EXPORT PDF =================
+if st.button("📄 Export PDF"):
 
-        content = [
-            Paragraph("LAPORAN KEUANGAN", styles["Title"]),
-            Spacer(1, 10),
-            Paragraph(f"Pendapatan: {rp(total_pendapatan)}", styles["Normal"]),
-            Paragraph(f"Modal: {rp(total_modal)}", styles["Normal"]),
-            Paragraph(f"Pengeluaran: {rp(total_pengeluaran)}", styles["Normal"]),
-            Paragraph(f"Laba Bersih: {rp(laba_bersih)}", styles["Normal"]),
-        ]
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer)
+    styles = getSampleStyleSheet()
 
-        doc.build(content)
+    content = [
+        Paragraph("LAPORAN KEUANGAN", styles["Title"]),
+        Spacer(1, 10),
+        Paragraph(f"Pendapatan: {rp(total_pendapatan)}", styles["Normal"]),
+        Paragraph(f"Modal: {rp(total_modal)}", styles["Normal"]),
+        Paragraph(f"Pengeluaran: {rp(total_pengeluaran)}", styles["Normal"]),
+        Paragraph(f"Laba Bersih: {rp(laba_bersih)}", styles["Normal"]),
+    ]
 
-        st.download_button(
-            "⬇️ Download PDF",
-            buffer.getvalue(),
-            file_name="laporan_keuangan.pdf"
-        )
+    doc.build(content)
+
+    st.download_button(
+        "⬇️ Download PDF",
+        buffer.getvalue(),
+        file_name="laporan_keuangan.pdf"
+    )
 # ================= PENGGUNA =================
 elif menu == "👤 Pengguna":
 
