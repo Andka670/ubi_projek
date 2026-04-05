@@ -691,12 +691,12 @@ if st.button("📄 Export PDF"):
 st.markdown("### ⚙️ Reset Data Keuangan")
 
 if st.button("🗑️ Reset Pengeluaran", type="secondary"):
-    confirm = st.checkbox("Yakin mau hapus semua pengeluaran?")
-
-    if confirm:
+    try:
         supabase.table("pengeluaran").delete().neq("id", 0).execute()
-        st.success("✅ Data berhasil direset!")
+        st.success("✅ Semua data pengeluaran berhasil dihapus!")
         st.rerun()
+    except Exception as e:
+        st.error(f"❌ Gagal reset: {e}")
 # ================= PENGGUNA =================
 elif menu == "👤 Pengguna":
 
