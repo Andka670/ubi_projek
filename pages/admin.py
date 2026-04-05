@@ -689,7 +689,7 @@ if st.button("📄 Export PDF"):
     )
 if st.button("🗑️ Reset Pengeluaran", type="secondary"):
     try:
-        supabase.table("pengeluaran").delete().gt("id", 0).execute()
+        supabase.table("pengeluaran").delete().not_.is_("id", None).execute()
         st.success("✅ Semua pengeluaran berhasil dihapus!")
         st.rerun()
     except Exception as e:
