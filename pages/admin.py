@@ -508,7 +508,7 @@ elif menu == "📈 Analisa Keuangan":
 
     st.subheader("📊 Analisa Keuangan")
 
-    # ================= FILTER TANGGAL =================
+    # ================= FILTER =================
     colf1, colf2 = st.columns(2)
     start = colf1.date_input("Dari Tanggal")
     end = colf2.date_input("Sampai Tanggal")
@@ -532,39 +532,36 @@ elif menu == "📈 Analisa Keuangan":
             (df_trx['tanggal'].dt.date <= end)
         ]
 
-    # ================= HITUNG PENDAPATAN =================
+    # ================= PENDAPATAN =================
     total_pendapatan = df_trx['total'].sum() if not df_trx.empty else 0
 
-    # ================= MODAL (FIXED) =================
+    # ================= MODAL (REAL) =================
     total_modal = 0
 
-    if not df_detail.empty and not df_produk.empty:
+    if not df_detail.empty and not df_produk.empty and not df_trx.empty:
 
-        # bersihin data biar pasti match
+        # ambil transaksi sesuai filter
+        valid_order = df_trx['id'].tolist()
+        df_detail = df_detail[df_detail['order_id'].isin(valid_order)]
+
+        # rapihin nama
         df_detail['produk'] = df_detail['produk'].astype(str).str.strip().str.lower()
         df_produk['nama'] = df_produk['nama'].astype(str).str.strip().str.lower()
 
+        # merge
         df_merge = df_detail.merge(
             df_produk,
             left_on="produk",
             right_on="nama",
-            how="left",
-            suffixes=('_detail', '_produk')
+            how="left"
         )
 
-        # ================= AMBIL KOLOM HARGA =================
-        if 'harga' in df_merge.columns:
-            harga_col = 'harga'
-        elif 'harga_produk' in df_merge.columns:
-            harga_col = 'harga_produk'
-        else:
-            st.error("❌ Kolom harga tidak ditemukan setelah merge")
-            harga_col = None
-
-        # ================= HITUNG MODAL =================
-        if harga_col:
-            df_merge['modal'] = df_merge[harga_col].fillna(0) * 0.7 * df_merge['jumlah']
+        # hitung modal dari harga_beli
+        if 'harga_beli' in df_merge.columns:
+            df_merge['modal'] = df_merge['harga_beli'].fillna(0) * df_merge['jumlah']
             total_modal = df_merge['modal'].sum()
+        else:
+            st.error("❌ Kolom harga_beli belum ada di tabel produk!")
 
     # ================= PENGELUARAN =================
     total_pengeluaran = 0
@@ -592,37 +589,23 @@ elif menu == "📈 Analisa Keuangan":
 
     st.markdown("---")
 
-    # ================= GRAFIK HARIAN =================
+    # ================= GRAFIK =================
     if not df_trx.empty:
         df_trx['hari'] = df_trx['tanggal'].dt.date
         df_harian = df_trx.groupby('hari')['total'].sum().reset_index()
 
-        fig = px.line(
-            df_harian,
-            x="hari",
-            y="total",
-            title="Pendapatan Harian",
-            markers=True
-        )
+        fig = px.line(df_harian, x="hari", y="total", title="Pendapatan Harian", markers=True)
         fig.update_layout(template="plotly_dark")
-
         st.plotly_chart(fig, use_container_width=True)
 
-    # ================= GRAFIK LABA =================
+    # ================= GRAFIK RINGKASAN =================
     df_chart = pd.DataFrame({
         "Kategori": ["Pendapatan", "Modal", "Pengeluaran", "Laba"],
         "Jumlah": [total_pendapatan, total_modal, total_pengeluaran, laba_bersih]
     })
 
-    fig2 = px.bar(
-        df_chart,
-        x="Kategori",
-        y="Jumlah",
-        text_auto=True,
-        title="Ringkasan Keuangan"
-    )
+    fig2 = px.bar(df_chart, x="Kategori", y="Jumlah", text_auto=True)
     fig2.update_layout(template="plotly_dark")
-
     st.plotly_chart(fig2, use_container_width=True)
 
     # ================= INPUT PENGELUARAN =================
@@ -631,179 +614,20 @@ elif menu == "📈 Analisa Keuangan":
         jumlah = st.number_input("Jumlah", min_value=0)
 
         if st.button("Simpan Pengeluaran", type="primary"):
-            supabase.table("pengeluaran").insert({
-                "nama": nama,
-                "jumlah": jumlah
-            }).execute()
+            if not nama:
+                st.error("Nama wajib diisi!")
+            elif jumlah <= 0:
+                st.error("Jumlah harus > 0!")
+            else:
+                supabase.table("pengeluaran").insert({
+                    "nama": nama,
+                    "jumlah": jumlah
+                }).execute()
 
-            st.success("Berhasil ditambahkan!")
-            st.rerun()
-
-    # ================= DATA PENGELUARAN =================
-    if not df_pengeluaran.empty:
-        st.markdown("### 📋 Data Pengeluaran")
-        st.dataframe(df_pengeluaran, use_container_width=True)
-
-    # ================= EXPORT PDF =================
-    if st.button("📄 Export PDF"):
-
-        buffer = BytesIO()
-        doc = SimpleDocTemplate(buffer)
-        styles = getSampleStyleSheet()
-
-        content = []
-
-        content.append(Paragraph("LAPORAN KEUANGAN", styles["Title"]))
-        content.append(Spacer(1, 10))
-
-        content.append(Paragraph(f"Pendapatan: {rp(total_pendapatan)}", styles["Normal"]))
-        content.append(Paragraph(f"Modal: {rp(total_modal)}", styles["Normal"]))
-        content.append(Paragraph(f"Pengeluaran: {rp(total_pengeluaran)}", styles["Normal"]))
-        content.append(Paragraph(f"Laba Bersih: {rp(laba_bersih)}", styles["Normal"]))
-
-        doc.build(content)
-
-        st.download_button(
-            "⬇️ Download PDF",
-            buffer.getvalue(),
-            file_name="laporan_keuangan.pdf"
-        )# ================= ANALISA KEUANGAN =================
-elif menu == "📈 Analisa Keuangan":
-
-    st.subheader("📊 Analisa Keuangan")
-
-    # ================= FILTER TANGGAL =================
-    colf1, colf2 = st.columns(2)
-    start = colf1.date_input("Dari Tanggal")
-    end = colf2.date_input("Sampai Tanggal")
+                st.success("Berhasil ditambahkan!")
+                st.rerun()
 
     # ================= DATA =================
-    transaksi = supabase.table("pemesanan").select("*").execute().data
-    detail = supabase.table("detail_pemesanan").select("*").execute().data
-    produk = supabase.table("produk").select("*").execute().data
-    pengeluaran = get_pengeluaran()
-
-    df_trx = pd.DataFrame(transaksi) if transaksi else pd.DataFrame()
-    df_detail = pd.DataFrame(detail) if detail else pd.DataFrame()
-    df_produk = pd.DataFrame(produk) if produk else pd.DataFrame()
-    df_pengeluaran = pd.DataFrame(pengeluaran) if pengeluaran else pd.DataFrame()
-
-    # ================= FILTER TRANSAKSI =================
-    if not df_trx.empty and 'tanggal' in df_trx.columns:
-        df_trx['tanggal'] = pd.to_datetime(df_trx['tanggal'])
-        df_trx = df_trx[
-            (df_trx['tanggal'].dt.date >= start) &
-            (df_trx['tanggal'].dt.date <= end)
-        ]
-
-    # ================= HITUNG PENDAPATAN =================
-    total_pendapatan = df_trx['total'].sum() if not df_trx.empty else 0
-
-    # ================= MODAL (FIXED) =================
-    total_modal = 0
-
-    if not df_detail.empty and not df_produk.empty:
-
-        # bersihin data biar pasti match
-        df_detail['produk'] = df_detail['produk'].astype(str).str.strip().str.lower()
-        df_produk['nama'] = df_produk['nama'].astype(str).str.strip().str.lower()
-
-        df_merge = df_detail.merge(
-            df_produk,
-            left_on="produk",
-            right_on="nama",
-            how="left",
-            suffixes=('_detail', '_produk')
-        )
-
-        # ================= AMBIL KOLOM HARGA =================
-        if 'harga' in df_merge.columns:
-            harga_col = 'harga'
-        elif 'harga_produk' in df_merge.columns:
-            harga_col = 'harga_produk'
-        else:
-            st.error("❌ Kolom harga tidak ditemukan setelah merge")
-            harga_col = None
-
-        # ================= HITUNG MODAL =================
-        if harga_col:
-            df_merge['modal'] = df_merge[harga_col].fillna(0) * 0.7 * df_merge['jumlah']
-            total_modal = df_merge['modal'].sum()
-
-    # ================= PENGELUARAN =================
-    total_pengeluaran = 0
-
-    if not df_pengeluaran.empty and 'created_at' in df_pengeluaran.columns:
-        df_pengeluaran['created_at'] = pd.to_datetime(df_pengeluaran['created_at'])
-
-        df_pengeluaran = df_pengeluaran[
-            (df_pengeluaran['created_at'].dt.date >= start) &
-            (df_pengeluaran['created_at'].dt.date <= end)
-        ]
-
-        total_pengeluaran = df_pengeluaran['jumlah'].sum()
-
-    # ================= LABA =================
-    laba_bersih = total_pendapatan - total_modal - total_pengeluaran
-
-    # ================= UI =================
-    col1, col2, col3, col4 = st.columns(4)
-
-    col1.metric("💰 Pendapatan", rp(total_pendapatan))
-    col2.metric("📦 Modal", rp(total_modal))
-    col3.metric("💸 Pengeluaran", rp(total_pengeluaran))
-    col4.metric("📈 Laba Bersih", rp(laba_bersih))
-
-    st.markdown("---")
-
-    # ================= GRAFIK HARIAN =================
-    if not df_trx.empty:
-        df_trx['hari'] = df_trx['tanggal'].dt.date
-        df_harian = df_trx.groupby('hari')['total'].sum().reset_index()
-
-        fig = px.line(
-            df_harian,
-            x="hari",
-            y="total",
-            title="Pendapatan Harian",
-            markers=True
-        )
-        fig.update_layout(template="plotly_dark")
-
-        st.plotly_chart(fig, use_container_width=True)
-
-    # ================= GRAFIK LABA =================
-    df_chart = pd.DataFrame({
-        "Kategori": ["Pendapatan", "Modal", "Pengeluaran", "Laba"],
-        "Jumlah": [total_pendapatan, total_modal, total_pengeluaran, laba_bersih]
-    })
-
-    fig2 = px.bar(
-        df_chart,
-        x="Kategori",
-        y="Jumlah",
-        text_auto=True,
-        title="Ringkasan Keuangan"
-    )
-    fig2.update_layout(template="plotly_dark")
-
-    st.plotly_chart(fig2, use_container_width=True)
-
-    # ================= INPUT PENGELUARAN =================
-    with st.expander("➕ Tambah Pengeluaran"):
-        nama = st.text_input("Nama Pengeluaran")
-        jumlah = st.number_input("Jumlah", min_value=0)
-
-        if st.button("Simpan Pengeluaran", type="primary"):
-            supabase.table("pengeluaran").insert({
-                "nama": nama,
-                "jumlah": jumlah
-            }).execute()
-
-            st.success("Berhasil ditambahkan!")
-            st.rerun()
-
-    # ================= DATA PENGELUARAN =================
     if not df_pengeluaran.empty:
         st.markdown("### 📋 Data Pengeluaran")
         st.dataframe(df_pengeluaran, use_container_width=True)
@@ -815,15 +639,14 @@ elif menu == "📈 Analisa Keuangan":
         doc = SimpleDocTemplate(buffer)
         styles = getSampleStyleSheet()
 
-        content = []
-
-        content.append(Paragraph("LAPORAN KEUANGAN", styles["Title"]))
-        content.append(Spacer(1, 10))
-
-        content.append(Paragraph(f"Pendapatan: {rp(total_pendapatan)}", styles["Normal"]))
-        content.append(Paragraph(f"Modal: {rp(total_modal)}", styles["Normal"]))
-        content.append(Paragraph(f"Pengeluaran: {rp(total_pengeluaran)}", styles["Normal"]))
-        content.append(Paragraph(f"Laba Bersih: {rp(laba_bersih)}", styles["Normal"]))
+        content = [
+            Paragraph("LAPORAN KEUANGAN", styles["Title"]),
+            Spacer(1, 10),
+            Paragraph(f"Pendapatan: {rp(total_pendapatan)}", styles["Normal"]),
+            Paragraph(f"Modal: {rp(total_modal)}", styles["Normal"]),
+            Paragraph(f"Pengeluaran: {rp(total_pengeluaran)}", styles["Normal"]),
+            Paragraph(f"Laba Bersih: {rp(laba_bersih)}", styles["Normal"]),
+        ]
 
         doc.build(content)
 
