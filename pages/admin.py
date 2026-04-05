@@ -687,6 +687,16 @@ if st.button("📄 Export PDF"):
         buffer.getvalue(),
         file_name="laporan_keuangan.pdf"
     )
+# ================= RESET ANALISA =================
+st.markdown("### ⚙️ Reset Data Keuangan")
+
+if st.button("🗑️ Reset Pengeluaran", type="secondary"):
+    confirm = st.checkbox("Yakin mau hapus semua pengeluaran?")
+
+    if confirm:
+        supabase.table("pengeluaran").delete().neq("id", 0).execute()
+        st.success("✅ Data berhasil direset!")
+        st.rerun()
 # ================= PENGGUNA =================
 elif menu == "👤 Pengguna":
 
