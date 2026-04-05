@@ -337,8 +337,9 @@ elif menu == "📦 Produk":
 
     with st.expander("➕ Tambah Produk"):
         nama = st.text_input("Nama")
-        harga = st.number_input("Harga")
-        stok = st.number_input("Stok")
+        harga = st.number_input("Harga Jual", min_value=0)
+        harga_beli = st.number_input("Harga Beli (Modal)", min_value=0)  # ✅ TAMBAHAN
+        stok = st.number_input("Stok", min_value=0)
         desk = st.text_area("Deskripsi")
         img = st.file_uploader("Upload gambar")
         kode_promo = st.text_input("Kode Promo (opsional)")
@@ -346,19 +347,29 @@ elif menu == "📦 Produk":
         promo_aktif = st.checkbox("Aktifkan Promo")
 
         if st.button("Simpan", type="primary"):
-            url_img = upload_gambar(img)
-            insert_produk({
-                "nama": nama,
-                "harga": harga,
-                "stok": stok,
-                "deskripsi": desk,
-                "gambar": url_img,
-                "kode_promo": kode_promo.upper(),
-                "diskon": diskon,
-                "promo_aktif": promo_aktif
-            })
-            st.success("Berhasil!")
-            st.rerun()
+            if not nama:
+                st.error("Nama wajib diisi!")
+            elif harga <= 0:
+                st.error("Harga jual harus lebih dari 0!")
+            elif harga_beli <= 0:
+                st.error("Harga beli harus lebih dari 0!")
+            else:
+                url_img = upload_gambar(img)
+
+                insert_produk({
+                    "nama": nama,
+                    "harga": harga,
+                    "harga_beli": harga_beli,  # ✅ MASUKKAN KE DB
+                    "stok": stok,
+                    "deskripsi": desk,
+                    "gambar": url_img,
+                    "kode_promo": kode_promo.upper(),
+                    "diskon": diskon,
+                    "promo_aktif": promo_aktif
+                })
+
+                st.success("Berhasil!")
+                st.rerun()
 
     data = get_produk()
 
@@ -378,7 +389,8 @@ elif menu == "📦 Produk":
                 <img src="{img}">
                 <div class="card-body">
                     <div class="title">{item['nama']}</div>
-                    <div class="price">{rp(item['harga'])}</div>
+                    <div class="price">Jual: {rp(item['harga'])}</div>
+                    <div class="price">Modal: {rp(item.get('harga_beli',0))}</div>
                     <p>Stok: {item['stok']}</p>
                     <p>{item.get('deskripsi','-')[:60]}</p>
                 </div>
@@ -393,29 +405,41 @@ elif menu == "📦 Produk":
 
             with col2.expander("Edit"):
                 nama_b = st.text_input("Nama", item['nama'], key="n"+id_str)
-                harga_b = st.number_input("Harga", value=item['harga'], key="h"+id_str)
+                harga_b = st.number_input("Harga Jual", value=item['harga'], key="h"+id_str)
+                harga_beli_b = st.number_input(
+                    "Harga Beli",
+                    value=item.get("harga_beli", 0),
+                    key="hb"+id_str
+                )  # ✅ TAMBAHAN
                 stok_b = st.number_input("Stok", value=item['stok'], key="s"+id_str)
                 desk_b = st.text_area("Desk", item.get('deskripsi',''), key="x"+id_str)
                 img_b = st.file_uploader("Ganti gambar", key="i"+id_str)
                 kode_b = st.text_input("Kode Promo", item.get("kode_promo",""), key="kp"+id_str)
                 diskon_b = st.number_input("Diskon (%)", value=item.get("diskon",0), key="dk"+id_str)
                 promo_b = st.checkbox("Promo Aktif", value=item.get("promo_aktif",False), key="pb"+id_str)
-                if st.button("Update", key="u"+id_str, type="primary"):
-                    url_img = item.get("gambar")
-                    if img_b:
-                        url_img = upload_gambar(img_b)
 
-                    update_produk(item['id'], {
-                        "nama": nama_b,
-                        "harga": harga_b,
-                        "stok": stok_b,
-                        "deskripsi": desk_b,
-                        "gambar": url_img,
-                        "kode_promo": kode_b.upper(),
-                        "diskon": diskon_b,
-                        "promo_aktif": promo_b
-                    })
-                    st.rerun()
+                if st.button("Update", key="u"+id_str, type="primary"):
+                    if not nama_b:
+                        st.error("Nama tidak boleh kosong!")
+                    else:
+                        url_img = item.get("gambar")
+                        if img_b:
+                            url_img = upload_gambar(img_b)
+
+                        update_produk(item['id'], {
+                            "nama": nama_b,
+                            "harga": harga_b,
+                            "harga_beli": harga_beli_b,  # ✅ UPDATE
+                            "stok": stok_b,
+                            "deskripsi": desk_b,
+                            "gambar": url_img,
+                            "kode_promo": kode_b.upper(),
+                            "diskon": diskon_b,
+                            "promo_aktif": promo_b
+                        })
+
+                        st.success("Berhasil update!")
+                        st.rerun()
 
 # ================= TRANSAKSI =================
 elif menu == "🧾 Transaksi":
