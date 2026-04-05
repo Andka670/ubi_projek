@@ -687,13 +687,10 @@ if st.button("📄 Export PDF"):
         buffer.getvalue(),
         file_name="laporan_keuangan.pdf"
     )
-# ================= RESET ANALISA =================
-st.markdown("### ⚙️ Reset Data Keuangan")
-
 if st.button("🗑️ Reset Pengeluaran", type="secondary"):
     try:
-        supabase.table("pengeluaran").delete().neq("id", 0).execute()
-        st.success("✅ Semua data pengeluaran berhasil dihapus!")
+        supabase.table("pengeluaran").delete().gt("id", 0).execute()
+        st.success("✅ Semua pengeluaran berhasil dihapus!")
         st.rerun()
     except Exception as e:
         st.error(f"❌ Gagal reset: {e}")
