@@ -210,26 +210,17 @@ def upload_gambar(file):
 
     return supabase.storage.from_("produk").get_public_url(file_name)
 # ================= UPLOAD QRIS =================
-def upload_qris(file, produk_id):
+def upload_qris(file):
     if file is None:
         return None
 
-    file_ext = file.name.split(".")[-1]
-    file_name = f"{produk_id}.{file_ext}"
+    file_name = f"qris_{uuid.uuid4()}.{file.name.split('.')[-1]}"
 
-    try:
-        supabase.storage.from_("qris").upload(
-            file_name,
-            file.getvalue(),
-            {"content-type": file.type}
-        )
-    except Exception:
-        # kalau file sudah ada, overwrite
-        supabase.storage.from_("qris").update(
-            file_name,
-            file.getvalue(),
-            {"content-type": file.type}
-        )
+    supabase.storage.from_("qris").upload(
+        file_name,
+        file.getvalue(),
+        {"content-type": file.type}
+    )
 
     return supabase.storage.from_("qris").get_public_url(file_name)
 # ================= DB =================
@@ -380,24 +371,19 @@ elif menu == "📦 Produk":
             elif harga_beli <= 0:
                 st.error("Harga beli harus lebih dari 0!")
             else:
-                produk_id = str(uuid.uuid4())
-
                 url_img = upload_gambar(img)
 
-                # 🔥 UPLOAD QRIS
-                qris_url = None
-                if qris_file:
-                    qris_url = upload_qris(qris_file, produk_id)
+                # 🔥 upload QRIS TANPA produk_id
+                qris_url = upload_qris(qris_file) if qris_file else None
 
                 insert_produk({
-                    "id": produk_id,
                     "nama": nama,
                     "harga": harga,
                     "harga_beli": harga_beli,
                     "stok": stok,
                     "deskripsi": desk,
                     "gambar": url_img,
-                    "qris_url": qris_url,  # 🔥 TAMBAHAN
+                    "qris_url": qris_url,
                     "kode_promo": kode_promo.upper(),
                     "diskon": diskon,
                     "promo_aktif": promo_aktif
@@ -433,32 +419,27 @@ elif menu == "📦 Produk":
             </div>
             """, unsafe_allow_html=True)
 
-            # 🔥 tampil QRIS kecil
+            # 🔥 tampil QRIS
             if item.get("qris_url"):
                 st.image(item["qris_url"], width=150)
 
             col1, col2 = st.columns(2)
 
-            # ================= DELETE =================
+            # DELETE
             if col1.button("🗑️ Hapus", key="d"+id_str, type="secondary"):
                 delete_produk(item['id'])
                 st.rerun()
 
-            # ================= EDIT =================
+            # EDIT
             with col2.expander("Edit"):
                 nama_b = st.text_input("Nama", item['nama'], key="n"+id_str)
                 harga_b = st.number_input("Harga Jual", value=item['harga'], key="h"+id_str)
-                harga_beli_b = st.number_input(
-                    "Harga Beli",
-                    value=item.get("harga_beli", 0),
-                    key="hb"+id_str
-                )
+                harga_beli_b = st.number_input("Harga Beli", value=item.get("harga_beli", 0), key="hb"+id_str)
                 stok_b = st.number_input("Stok", value=item['stok'], key="s"+id_str)
                 desk_b = st.text_area("Desk", item.get('deskripsi',''), key="x"+id_str)
 
                 img_b = st.file_uploader("Ganti gambar", key="i"+id_str)
 
-                # 🔥 QRIS EDIT
                 if item.get("qris_url"):
                     st.image(item["qris_url"], width=120)
 
@@ -476,10 +457,9 @@ elif menu == "📦 Produk":
                         if img_b:
                             url_img = upload_gambar(img_b)
 
-                        # 🔥 UPDATE QRIS
                         qris_url = item.get("qris_url")
                         if qris_b:
-                            qris_url = upload_qris(qris_b, item['id'])
+                            qris_url = upload_qris(qris_b)
 
                         update_produk(item['id'], {
                             "nama": nama_b,
@@ -488,7 +468,7 @@ elif menu == "📦 Produk":
                             "stok": stok_b,
                             "deskripsi": desk_b,
                             "gambar": url_img,
-                            "qris_url": qris_url,  # 🔥 TAMBAHAN
+                            "qris_url": qris_url,
                             "kode_promo": kode_b.upper(),
                             "diskon": diskon_b,
                             "promo_aktif": promo_b
