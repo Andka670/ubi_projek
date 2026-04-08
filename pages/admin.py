@@ -209,7 +209,29 @@ def upload_gambar(file):
     )
 
     return supabase.storage.from_("produk").get_public_url(file_name)
+# ================= UPLOAD QRIS =================
+def upload_qris(file, produk_id):
+    if file is None:
+        return None
 
+    file_ext = file.name.split(".")[-1]
+    file_name = f"{produk_id}.{file_ext}"
+
+    try:
+        supabase.storage.from_("qris").upload(
+            file_name,
+            file.getvalue(),
+            {"content-type": file.type}
+        )
+    except Exception:
+        # kalau file sudah ada, overwrite
+        supabase.storage.from_("qris").update(
+            file_name,
+            file.getvalue(),
+            {"content-type": file.type}
+        )
+
+    return supabase.storage.from_("qris").get_public_url(file_name)
 # ================= DB =================
 def get_produk():
     return supabase.table("produk").select("*").execute().data
