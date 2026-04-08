@@ -278,8 +278,7 @@ if menu == "🛒 Kasir":
             "stok": stok_terbaru,
             "kode_promo": produk_db.get("kode_promo"),
             "diskon": produk_db.get("diskon", 0),
-            "promo_aktif": produk_db.get("promo_aktif", False),
-            "qris_url": produk_db.get("qris_url")  # 🔥 ambil dari DB
+            "promo_aktif": produk_db.get("promo_aktif", False)
         })
 
         st.success("Berhasil ditambahkan!")
@@ -330,97 +329,92 @@ if menu == "🛒 Kasir":
     total_akhir = int(total - (total * diskon / 100))
     st.markdown(f"<div class='total'>Total Setelah Diskon: {rp(total_akhir)}</div>", unsafe_allow_html=True)
 
-# ================= METODE PEMBAYARAN =================
-metode = st.selectbox("Metode Pembayaran", ["Tunai", "QRIS"])
+    # ================= METODE PEMBAYARAN =================
+    metode = st.selectbox("Metode Pembayaran", ["Tunai", "QRIS"])
 
-# 🔥 ambil QRIS langsung dari produk (bukan cart)
-qris_url = produk.get("qris_url")
+    # ================= QRIS =================
+    if metode == "QRIS":
+        qris_url = "https://ukgzplcpupucrlalkafs.supabase.co/storage/v1/object/public/qris/qris.jpeg"
 
-# ================= QRIS =================
-if metode == "QRIS":
-
-    if qris_url and str(qris_url).strip() != "":
         st.image(qris_url, caption="Scan QRIS untuk bayar", width=250)
-    else:
-        st.warning("⚠️ QRIS belum tersedia di produk ini")
+        st.warning("⚠️ Setelah bayar, klik simpan transaksi")
 
-    st.warning("⚠️ Setelah bayar, klik simpan transaksi")
-
-# ================= PEMBAYARAN =================
-if metode == "Tunai":
-    bayar = st.number_input("Bayar", min_value=0)
-    kembali = bayar - total_akhir if bayar >= total_akhir else 0
-
-    if bayar >= total_akhir and total > 0:
-        st.success(f"Kembalian: {rp(kembali)}")
-else:
-    bayar = total_akhir
-    kembali = 0
-# ================= SIMPAN =================
-if st.button("💾 Simpan Transaksi", type="primary"):
-
-    if len(st.session_state.cart) == 0:
-        st.error("❌ Keranjang kosong!")
-        st.stop()
-
+    # ================= PEMBAYARAN =================
     if metode == "Tunai":
-        if bayar <= 0:
-            st.error("❌ Uang bayar belum diisi!")
+        bayar = st.number_input("Bayar", min_value=0)
+        kembali = bayar - total_akhir if bayar >= total_akhir else 0
+
+        if bayar >= total_akhir and total > 0:
+            st.success(f"Kembalian: {rp(kembali)}")
+    else:
+        bayar = total_akhir
+        kembali = 0
+
+    # ================= SIMPAN =================
+    if st.button("💾 Simpan Transaksi", type="primary"):
+
+        if len(st.session_state.cart) == 0:
+            st.error("❌ Keranjang kosong!")
             st.stop()
 
-        if bayar < total_akhir:
-            st.error("❌ Uang tidak cukup!")
+        if metode == "Tunai":
+            if bayar <= 0:
+                st.error("❌ Uang bayar belum diisi!")
+                st.stop()
+
+            if bayar < total_akhir:
+                st.error("❌ Uang tidak cukup!")
+                st.stop()
+
+        try:
+            order_id = str(uuid.uuid4())
+
+            insert_order(order_id, nama, total_akhir)
+
+            for item in st.session_state.cart:
+                insert_detail({
+                    "order_id": order_id,
+                    "produk": item['nama'],
+                    "harga": int(item['harga']),
+                    "jumlah": int(item['qty']),
+                    "subtotal": int(item['subtotal'])
+                })
+
+                update_stok(item['id'], item['stok'] - item['qty'])
+
+            st.success("Transaksi berhasil!")
+
+            # ================= STRUK =================
+            struk_html = generate_struk_html(
+                order_id,
+                nama,
+                st.session_state.cart,
+                total,
+                diskon,
+                total_akhir,
+                bayar,
+                kembali
+            )
+
+            st.components.v1.html(f"""
+            <div id="printArea">{struk_html}</div>
+            <button onclick="window.print()">PRINT</button>
+            """, height=500)
+
+            pdf = generate_pdf(order_id, nama, st.session_state.cart, total, bayar, kembali)
+
+            st.download_button(
+                "Download PDF",
+                data=pdf,
+                file_name=f"struk_{order_id[:8]}.pdf",
+                mime="application/pdf"
+            )
+
+            st.session_state.cart = []
+
+        except Exception as e:
+            st.error(f"❌ Gagal simpan: {e}")
             st.stop()
-
-    try:
-        order_id = str(uuid.uuid4())
-
-        insert_order(order_id, nama, total_akhir)
-
-        for item in st.session_state.cart:
-            insert_detail({
-                "order_id": order_id,
-                "produk": item['nama'],
-                "harga": int(item['harga']),
-                "jumlah": int(item['qty']),
-                "subtotal": int(item['subtotal'])
-            })
-
-            update_stok(item['id'], item['stok'] - item['qty'])
-
-        st.success("Transaksi berhasil!")
-
-        # ================= STRUK =================
-        struk_html = generate_struk_html(
-            order_id,
-            nama,
-            st.session_state.cart,
-            total,
-            diskon,
-            total_akhir,
-            bayar,
-            kembali
-        )
-
-        st.components.v1.html(f"""
-        <div id="printArea">{struk_html}</div>
-        <button onclick="window.print()">PRINT</button>
-        """, height=500)
-
-        pdf = generate_pdf(order_id, nama, st.session_state.cart, total, bayar, kembali)
-
-        st.download_button(
-            "Download PDF",
-            data=pdf,
-            file_name=f"struk_{order_id[:8]}.pdf",
-            mime="application/pdf"
-        )
-
-        st.session_state.cart = []
-
-    except Exception as e:
-        st.error(f"❌ Gagal simpan: {e}")
-        st.stop()
 # ================= LAPORAN =================
 else:
 
