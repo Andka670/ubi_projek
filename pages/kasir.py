@@ -286,8 +286,6 @@ if menu == "🛒 Kasir":
     # ================= KERANJANG =================
     st.subheader("🛍️ Keranjang")
 
-    kode_input = st.text_input("🎟️ Kode Promo")
-
     total = 0
     diskon = 0
 
@@ -308,8 +306,19 @@ if menu == "🛒 Kasir":
             st.session_state.cart.pop(i)
             st.rerun()
 
-    # ================= PROMO =================
-    if kode_input:
+    # ================= PROMO (SELECTBOX) =================
+    promo_list = list({
+        item.get("kode_promo")
+        for item in st.session_state.cart
+        if item.get("kode_promo") and item.get("promo_aktif")
+    })
+
+    kode_input = st.selectbox(
+        "🎟️ Pilih Kode Promo",
+        ["-- Pilih Promo --"] + promo_list
+    )
+
+    if kode_input and kode_input != "-- Pilih Promo --":
         for item in st.session_state.cart:
             if (
                 item.get("kode_promo")
@@ -319,12 +328,13 @@ if menu == "🛒 Kasir":
                 diskon = int(item.get("diskon", 0))
                 break
 
+    # ================= TOTAL =================
     st.markdown(f"<div class='total'>Total: {rp(total)}</div>", unsafe_allow_html=True)
 
     if diskon > 0:
         st.success(f"🎉 Promo {diskon}% aktif!")
-    elif kode_input:
-        st.error("❌ Kode promo tidak valid")
+    elif kode_input != "-- Pilih Promo --":
+        st.error("❌ Promo tidak valid")
 
     total_akhir = int(total - (total * diskon / 100))
     st.markdown(f"<div class='total'>Total Setelah Diskon: {rp(total_akhir)}</div>", unsafe_allow_html=True)
