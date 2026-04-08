@@ -243,6 +243,10 @@ if menu == "🛒 Kasir":
     nama = get_nama_kasir()
     st.info(f"Kasir: {nama}")
 
+    # ================= QRIS FUNCTION =================
+    def get_qris_url():
+        return supabase.storage.from_("qris").get_public_url("qris.png")
+
     def format_produk(x):
         stok = x['stok']
         if stok <= 0:
@@ -332,37 +336,48 @@ if menu == "🛒 Kasir":
 
     st.markdown(f"<div class='total'>Total Setelah Diskon: {rp(total_akhir)}</div>", unsafe_allow_html=True)
 
-    bayar = st.number_input("Bayar", min_value=0)
+    # ================= METODE PEMBAYARAN =================
+    metode = st.selectbox("Metode Pembayaran", ["Tunai", "QRIS"])
 
-    kembali = bayar - total_akhir if bayar >= total_akhir else 0
+    if metode == "QRIS":
+        qris_url = get_qris_url()
+        st.image(qris_url, caption="Scan QRIS untuk bayar", width=250)
+        st.warning("⚠️ Setelah bayar, klik simpan transaksi")
 
-    if bayar >= total_akhir and total > 0:
-        st.success(f"Kembalian: {rp(kembali)}")
+    # ================= PEMBAYARAN =================
+    if metode == "Tunai":
+        bayar = st.number_input("Bayar", min_value=0)
+        kembali = bayar - total_akhir if bayar >= total_akhir else 0
+
+        if bayar >= total_akhir and total > 0:
+            st.success(f"Kembalian: {rp(kembali)}")
+    else:
+        bayar = total_akhir
+        kembali = 0
 
 # ================= SIMPAN =================
 if st.button("💾 Simpan Transaksi", type="primary"):
 
-    # ❌ CEK KERANJANG KOSONG
     if len(st.session_state.cart) == 0:
         st.error("❌ Keranjang kosong!")
         st.stop()
 
-    # ❌ CEK BAYAR BELUM DIISI / 0
-    if bayar <= 0:
-        st.error("❌ Uang bayar belum diisi!")
-        st.stop()
+    # 🔥 VALIDASI KHUSUS TUNAI
+    if metode == "Tunai":
+        if bayar <= 0:
+            st.error("❌ Uang bayar belum diisi!")
+            st.stop()
 
-    # ❌ CEK BAYAR KURANG
-    if bayar < total_akhir:
-        st.error("❌ Uang tidak cukup!")
-        st.stop()
+        if bayar < total_akhir:
+            st.error("❌ Uang tidak cukup!")
+            st.stop()
+
     try:
         order_id = str(uuid.uuid4())
 
-        # 🔥 simpan ke pemesanan (pakai total_akhir)
+        # 🔥 simpan (bisa tambah kolom metode kalau mau)
         insert_order(order_id, nama, total_akhir)
 
-        # 🔥 simpan detail
         for item in st.session_state.cart:
             insert_detail({
                 "order_id": order_id,
@@ -390,44 +405,11 @@ if st.button("💾 Simpan Transaksi", type="primary"):
 
         print_block = f"""
         <div id="printArea">{struk_html}</div>
-        
         <button onclick="window.print()">PRINT</button>
-        
-        <style>
-        @media print {{
-            body {{
-                margin: 0;
-                padding: 0;
-            }}
-        
-            body * {{
-                visibility: hidden;
-            }}
-        
-            #printArea, #printArea * {{
-                visibility: visible;
-            }}
-        
-            #printArea {{
-                width: 300px;        /* aman & tidak kepotong */
-                font-family: monospace;
-                font-size: 11px;
-                line-height: 1.2;
-        
-                margin: 0 auto;
-        
-                /* 🔥 penting biar tidak kepotong */
-                page-break-inside: avoid;
-            }}
-        
-            @page {{
-                size: A4;
-                margin: 10mm;
-            }}
-        }}
-        </style>
         """
+
         st.components.v1.html(print_block, height=500)
+
         pdf = generate_pdf(order_id, nama, st.session_state.cart, total, bayar, kembali)
 
         st.download_button(
@@ -437,8 +419,8 @@ if st.button("💾 Simpan Transaksi", type="primary"):
             mime="application/pdf"
         )
 
-        # 🔥 reset cart
         st.session_state.cart = []
+
     except Exception as e:
         st.error(f"❌ Gagal simpan: {e}")
         st.stop()
