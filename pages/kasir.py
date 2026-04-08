@@ -339,12 +339,15 @@ if menu == "🛒 Kasir":
         qris_url = st.session_state.cart[0].get("qris_url")
 
     if metode == "QRIS":
-        if qris_url:
-            st.image(qris_url, caption="Scan QRIS untuk bayar", width=250)
-        else:
-            st.warning("⚠️ QRIS belum tersedia")
 
-        st.warning("⚠️ Setelah bayar, klik simpan transaksi")
+    qris_url = produk.get("qris_url")
+
+    if qris_url:
+        st.image(qris_url, caption="Scan QRIS untuk bayar", width=250)
+    else:
+        st.warning("⚠️ QRIS belum tersedia di produk ini")
+
+    st.warning("⚠️ Setelah bayar, klik simpan transaksi")
 
     # ================= PEMBAYARAN =================
     if metode == "Tunai":
