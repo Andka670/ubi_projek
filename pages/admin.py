@@ -367,32 +367,50 @@ elif menu == "📦 Produk":
     qris_url = None
     current_name = None
 
-    if files:
-        current_name = files[0]["name"]
+    # 🔥 filter file valid (hindari .emptyFolderPlaceholder)
+    valid_files = [f for f in files if not f["name"].startswith(".")]
+
+    if valid_files:
+        current_name = valid_files[0]["name"]
         qris_url = supabase.storage.from_("qris").get_public_url(current_name)
 
+    # ================= TAMPILKAN =================
     if qris_url:
-        st.image(qris_url, width=200, caption=f"QRIS Saat Ini: {current_name}")
+        st.image(qris_url, width=200)
+        st.caption(f"QRIS Saat Ini: {current_name}")
     else:
         st.warning("QRIS belum ada")
 
+    # ================= UPLOAD =================
     new_qris = st.file_uploader("Upload / Ganti QRIS", type=["png", "jpg", "jpeg"])
-    new_name = st.text_input("Nama File QRIS (opsional)", value=current_name if current_name else "")
+    new_name = st.text_input(
+        "Nama File QRIS (opsional)",
+        value=current_name if current_name else ""
+    )
 
     if st.button("💾 Simpan QRIS", type="primary"):
         if not new_qris:
             st.error("Upload gambar dulu!")
         else:
             try:
-                # hapus semua file lama
+                # 🔥 hapus semua file lama (biar hanya 1 QRIS)
                 old_files = supabase.storage.from_("qris").list()
                 for f in old_files:
-                    supabase.storage.from_("qris").remove([f["name"]])
+                    if not f["name"].startswith("."):
+                        supabase.storage.from_("qris").remove([f["name"]])
             except:
                 pass
 
             ext = new_qris.name.split('.')[-1]
-            file_name = new_name if new_name else f"qris.{ext}"
+
+            # 🔥 pastikan ada ekstensi
+            if new_name:
+                if "." not in new_name:
+                    file_name = f"{new_name}.{ext}"
+                else:
+                    file_name = new_name
+            else:
+                file_name = f"qris.{ext}"
 
             supabase.storage.from_("qris").upload(
                 file_name,
@@ -400,7 +418,7 @@ elif menu == "📦 Produk":
                 {"content-type": new_qris.type}
             )
 
-            st.success("QRIS berhasil diperbarui!")
+            st.success("✅ QRIS berhasil diperbarui!")
             st.rerun()
 
     st.markdown("---")
