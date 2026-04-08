@@ -255,6 +255,10 @@ if menu == "🛒 Kasir":
 
     produk = st.selectbox("Pilih Produk", produk_list, format_func=format_produk)
 
+    # 🔥 TAMPILKAN QRIS PRODUK
+    if produk.get("qris_url"):
+        st.image(produk["qris_url"], width=200, caption="QRIS Produk")
+
     qty = st.number_input("Jumlah", min_value=1)
 
     if st.button("➕ Tambah ke Keranjang", type="primary"):
@@ -281,7 +285,8 @@ if menu == "🛒 Kasir":
             "stok": stok_terbaru,
             "kode_promo": produk_db.get("kode_promo"),
             "diskon": produk_db.get("diskon", 0),
-            "promo_aktif": produk_db.get("promo_aktif", False)
+            "promo_aktif": produk_db.get("promo_aktif", False),
+            "qris_url": produk_db.get("qris_url")  # 🔥 TAMBAHAN
         })
 
         st.success("Berhasil ditambahkan!")
@@ -339,30 +344,41 @@ if menu == "🛒 Kasir":
     if bayar >= total_akhir and total > 0:
         st.success(f"Kembalian: {rp(kembali)}")
 
+    # ================= QRIS PEMBAYARAN =================
+    if len(st.session_state.cart) > 0:
+
+        # 🔥 ambil QRIS terakhir (lebih fleksibel)
+        qris_url = None
+        for item in reversed(st.session_state.cart):
+            if item.get("qris_url"):
+                qris_url = item["qris_url"]
+                break
+
+        if qris_url:
+            st.markdown("### 💳 Scan QRIS untuk Pembayaran")
+            st.image(qris_url, width=250)
+
+
 # ================= SIMPAN =================
 if st.button("💾 Simpan Transaksi", type="primary"):
 
-    # ❌ CEK KERANJANG KOSONG
     if len(st.session_state.cart) == 0:
         st.error("❌ Keranjang kosong!")
         st.stop()
 
-    # ❌ CEK BAYAR BELUM DIISI / 0
     if bayar <= 0:
         st.error("❌ Uang bayar belum diisi!")
         st.stop()
 
-    # ❌ CEK BAYAR KURANG
     if bayar < total_akhir:
         st.error("❌ Uang tidak cukup!")
         st.stop()
+
     try:
         order_id = str(uuid.uuid4())
 
-        # 🔥 simpan ke pemesanan (pakai total_akhir)
         insert_order(order_id, nama, total_akhir)
 
-        # 🔥 simpan detail
         for item in st.session_state.cart:
             insert_detail({
                 "order_id": order_id,
@@ -409,14 +425,11 @@ if st.button("💾 Simpan Transaksi", type="primary"):
             }}
         
             #printArea {{
-                width: 300px;        /* aman & tidak kepotong */
+                width: 300px;
                 font-family: monospace;
                 font-size: 11px;
                 line-height: 1.2;
-        
                 margin: 0 auto;
-        
-                /* 🔥 penting biar tidak kepotong */
                 page-break-inside: avoid;
             }}
         
@@ -428,6 +441,7 @@ if st.button("💾 Simpan Transaksi", type="primary"):
         </style>
         """
         st.components.v1.html(print_block, height=500)
+
         pdf = generate_pdf(order_id, nama, st.session_state.cart, total, bayar, kembali)
 
         st.download_button(
@@ -437,8 +451,8 @@ if st.button("💾 Simpan Transaksi", type="primary"):
             mime="application/pdf"
         )
 
-        # 🔥 reset cart
         st.session_state.cart = []
+
     except Exception as e:
         st.error(f"❌ Gagal simpan: {e}")
         st.stop()
