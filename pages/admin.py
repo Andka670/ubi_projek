@@ -209,12 +209,23 @@ def upload_gambar(file):
     )
 
     return supabase.storage.from_("produk").get_public_url(file_name)
-# ================= UPLOAD QRIS =================
-def upload_qris(file):
+# ================= QRIS GLOBAL =================
+def upload_qris_global(file, custom_name=None):
     if file is None:
         return None
 
-    file_name = f"qris_{uuid.uuid4()}.{file.name.split('.')[-1]}"
+    ext = file.name.split('.')[-1]
+
+    # pakai nama custom atau default
+    file_name = custom_name if custom_name else f"qris.{ext}"
+
+    # hapus file lama kalau ada (biar ga numpuk)
+    try:
+        files = supabase.storage.from_("qris").list()
+        for f in files:
+            supabase.storage.from_("qris").remove([f["name"]])
+    except:
+        pass
 
     supabase.storage.from_("qris").upload(
         file_name,
@@ -348,6 +359,53 @@ if menu == "📊 Dashboard":
 # ================= PRODUK =================
 elif menu == "📦 Produk":
 
+    # ================= QRIS GLOBAL =================
+    st.markdown("## 💳 QRIS Pembayaran")
+
+    files = supabase.storage.from_("qris").list()
+
+    qris_url = None
+    current_name = None
+
+    if files:
+        current_name = files[0]["name"]
+        qris_url = supabase.storage.from_("qris").get_public_url(current_name)
+
+    if qris_url:
+        st.image(qris_url, width=200, caption=f"QRIS Saat Ini: {current_name}")
+    else:
+        st.warning("QRIS belum ada")
+
+    new_qris = st.file_uploader("Upload / Ganti QRIS", type=["png", "jpg", "jpeg"])
+    new_name = st.text_input("Nama File QRIS (opsional)", value=current_name if current_name else "")
+
+    if st.button("💾 Simpan QRIS", type="primary"):
+        if not new_qris:
+            st.error("Upload gambar dulu!")
+        else:
+            try:
+                # hapus semua file lama
+                old_files = supabase.storage.from_("qris").list()
+                for f in old_files:
+                    supabase.storage.from_("qris").remove([f["name"]])
+            except:
+                pass
+
+            ext = new_qris.name.split('.')[-1]
+            file_name = new_name if new_name else f"qris.{ext}"
+
+            supabase.storage.from_("qris").upload(
+                file_name,
+                new_qris.getvalue(),
+                {"content-type": new_qris.type}
+            )
+
+            st.success("QRIS berhasil diperbarui!")
+            st.rerun()
+
+    st.markdown("---")
+
+    # ================= TAMBAH PRODUK =================
     with st.expander("➕ Tambah Produk"):
         nama = st.text_input("Nama")
         harga = st.number_input("Harga Jual", min_value=0)
@@ -356,14 +414,11 @@ elif menu == "📦 Produk":
         desk = st.text_area("Deskripsi")
         img = st.file_uploader("Upload gambar")
 
-        # 🔥 QRIS
-        qris_file = st.file_uploader("Upload QRIS", type=["png", "jpg", "jpeg"])
-
         kode_promo = st.text_input("Kode Promo (opsional)")
         diskon = st.number_input("Diskon (%)", min_value=0, max_value=100)
         promo_aktif = st.checkbox("Aktifkan Promo")
 
-        if st.button("Simpan", type="primary"):
+        if st.button("Simpan Produk", type="primary"):
             if not nama:
                 st.error("Nama wajib diisi!")
             elif harga <= 0:
@@ -373,9 +428,6 @@ elif menu == "📦 Produk":
             else:
                 url_img = upload_gambar(img)
 
-                # 🔥 upload QRIS TANPA produk_id
-                qris_url = upload_qris(qris_file) if qris_file else None
-
                 insert_produk({
                     "nama": nama,
                     "harga": harga,
@@ -383,15 +435,15 @@ elif menu == "📦 Produk":
                     "stok": stok,
                     "deskripsi": desk,
                     "gambar": url_img,
-                    "qris_url": qris_url,
                     "kode_promo": kode_promo.upper(),
                     "diskon": diskon,
                     "promo_aktif": promo_aktif
                 })
 
-                st.success("Berhasil!")
+                st.success("Produk berhasil ditambahkan!")
                 st.rerun()
 
+    # ================= LIST PRODUK =================
     data = get_produk()
 
     if data:
@@ -414,14 +466,10 @@ elif menu == "📦 Produk":
                     <div class="price">Modal: {rp(item.get('harga_beli',0))}</div>
                     <p>Stok: {item['stok']}</p>
                     <p>{item.get('deskripsi','-')[:60]}</p>
-                    {f'<p>💳 QRIS tersedia</p>' if item.get("qris_url") else ''}
+                    {f"<p>🎟️ Promo: {item.get('kode_promo')} ({item.get('diskon')}%)</p>" if item.get("promo_aktif") else ""}
                 </div>
             </div>
             """, unsafe_allow_html=True)
-
-            # 🔥 tampil QRIS
-            if item.get("qris_url"):
-                st.image(item["qris_url"], width=150)
 
             col1, col2 = st.columns(2)
 
@@ -436,14 +484,9 @@ elif menu == "📦 Produk":
                 harga_b = st.number_input("Harga Jual", value=item['harga'], key="h"+id_str)
                 harga_beli_b = st.number_input("Harga Beli", value=item.get("harga_beli", 0), key="hb"+id_str)
                 stok_b = st.number_input("Stok", value=item['stok'], key="s"+id_str)
-                desk_b = st.text_area("Desk", item.get('deskripsi',''), key="x"+id_str)
+                desk_b = st.text_area("Deskripsi", item.get('deskripsi',''), key="x"+id_str)
 
                 img_b = st.file_uploader("Ganti gambar", key="i"+id_str)
-
-                if item.get("qris_url"):
-                    st.image(item["qris_url"], width=120)
-
-                qris_b = st.file_uploader("Ganti QRIS", key="q"+id_str)
 
                 kode_b = st.text_input("Kode Promo", item.get("kode_promo",""), key="kp"+id_str)
                 diskon_b = st.number_input("Diskon (%)", value=item.get("diskon",0), key="dk"+id_str)
@@ -457,10 +500,6 @@ elif menu == "📦 Produk":
                         if img_b:
                             url_img = upload_gambar(img_b)
 
-                        qris_url = item.get("qris_url")
-                        if qris_b:
-                            qris_url = upload_qris(qris_b)
-
                         update_produk(item['id'], {
                             "nama": nama_b,
                             "harga": harga_b,
@@ -468,13 +507,12 @@ elif menu == "📦 Produk":
                             "stok": stok_b,
                             "deskripsi": desk_b,
                             "gambar": url_img,
-                            "qris_url": qris_url,
                             "kode_promo": kode_b.upper(),
                             "diskon": diskon_b,
                             "promo_aktif": promo_b
                         })
 
-                        st.success("Berhasil update!")
+                        st.success("Produk berhasil diupdate!")
                         st.rerun()
 # ================= TRANSAKSI =================
 elif menu == "🧾 Transaksi":
