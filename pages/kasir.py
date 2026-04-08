@@ -238,6 +238,10 @@ if menu == "🛒 Kasir":
 
     st.subheader("Transaksi")
 
+    # ================= INIT CART =================
+    if "cart" not in st.session_state:
+        st.session_state.cart = []
+
     produk_list = get_produk()
     nama = get_nama_kasir()
     st.info(f"Kasir: {nama}")
@@ -258,7 +262,12 @@ if menu == "🛒 Kasir":
     # ================= TAMBAH KE KERANJANG =================
     if st.button("➕ Tambah ke Keranjang", type="primary"):
 
-        produk_db = supabase.table("produk").select("*").eq("id", produk['id']).execute().data[0]
+        try:
+            produk_db = supabase.table("produk").select("*").eq("id", produk['id']).execute().data[0]
+        except:
+            st.error("❌ Produk tidak ditemukan!")
+            st.stop()
+
         stok_terbaru = produk_db["stok"]
 
         if stok_terbaru <= 0:
@@ -282,6 +291,7 @@ if menu == "🛒 Kasir":
         })
 
         st.success("Berhasil ditambahkan!")
+        st.rerun()
 
     # ================= KERANJANG =================
     st.subheader("🛍️ Keranjang")
@@ -306,7 +316,7 @@ if menu == "🛒 Kasir":
             st.session_state.cart.pop(i)
             st.rerun()
 
-    # ================= PROMO (SELECTBOX) =================
+    # ================= PROMO =================
     promo_list = list({
         item.get("kode_promo")
         for item in st.session_state.cart
@@ -323,7 +333,7 @@ if menu == "🛒 Kasir":
             if (
                 item.get("kode_promo")
                 and item.get("promo_aktif")
-                and item.get("kode_promo").upper() == kode_input.upper()
+                and item.get("kode_promo", "").upper() == kode_input.upper()
             ):
                 diskon = int(item.get("diskon", 0))
                 break
@@ -339,14 +349,31 @@ if menu == "🛒 Kasir":
     total_akhir = int(total - (total * diskon / 100))
     st.markdown(f"<div class='total'>Total Setelah Diskon: {rp(total_akhir)}</div>", unsafe_allow_html=True)
 
-    # ================= METODE PEMBAYARAN =================
+    # ================= METODE =================
     metode = st.selectbox("Metode Pembayaran", ["Tunai", "QRIS"])
 
-    # ================= QRIS =================
-    if metode == "QRIS":
-        qris_url = "https://ukgzplcpupucrlalkafs.supabase.co/storage/v1/object/public/qris/qris.jpeg"
+    # ================= QRIS DINAMIS =================
+    qris_url = None
 
-        st.image(qris_url, caption="Scan QRIS untuk bayar", width=250)
+    try:
+        files = supabase.storage.from_("qris").list() or []
+    except:
+        files = []
+
+    valid_files = [f for f in files if not f["name"].startswith(".")]
+
+    if valid_files:
+        # ambil file terbaru
+        valid_files = sorted(valid_files, key=lambda x: x.get("created_at", ""), reverse=True)
+        file_name = valid_files[0]["name"]
+        qris_url = supabase.storage.from_("qris").get_public_url(file_name)
+
+    if metode == "QRIS":
+        if qris_url:
+            st.image(qris_url, caption="Scan QRIS untuk bayar", width=250)
+        else:
+            st.error("❌ QRIS belum diatur di admin")
+
         st.warning("⚠️ Setelah bayar, klik simpan transaksi")
 
     # ================= PEMBAYARAN =================
@@ -421,6 +448,7 @@ if menu == "🛒 Kasir":
             )
 
             st.session_state.cart = []
+            st.rerun()
 
         except Exception as e:
             st.error(f"❌ Gagal simpan: {e}")
