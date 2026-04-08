@@ -239,13 +239,8 @@ if menu == "🛒 Kasir":
     st.subheader("Transaksi")
 
     produk_list = get_produk()
-
     nama = get_nama_kasir()
     st.info(f"Kasir: {nama}")
-
-    # ================= QRIS FUNCTION =================
-    def get_qris_url():
-        return supabase.storage.from_("qris").get_public_url("qris.png")
 
     def format_produk(x):
         stok = x['stok']
@@ -258,14 +253,12 @@ if menu == "🛒 Kasir":
         return f"{status} {x['nama']} (Stok: {stok})"
 
     produk = st.selectbox("Pilih Produk", produk_list, format_func=format_produk)
-
     qty = st.number_input("Jumlah", min_value=1)
 
+    # ================= TAMBAH KE KERANJANG =================
     if st.button("➕ Tambah ke Keranjang", type="primary"):
 
-        produk_db = supabase.table("produk").select("*").eq("id", produk['id']).execute().data
-        produk_db = produk_db[0]
-
+        produk_db = supabase.table("produk").select("*").eq("id", produk['id']).execute().data[0]
         stok_terbaru = produk_db["stok"]
 
         if stok_terbaru <= 0:
@@ -285,11 +278,13 @@ if menu == "🛒 Kasir":
             "stok": stok_terbaru,
             "kode_promo": produk_db.get("kode_promo"),
             "diskon": produk_db.get("diskon", 0),
-            "promo_aktif": produk_db.get("promo_aktif", False)
+            "promo_aktif": produk_db.get("promo_aktif", False),
+            "qris_url": produk_db.get("qris_url")  # 🔥 ambil dari DB
         })
 
         st.success("Berhasil ditambahkan!")
 
+    # ================= KERANJANG =================
     st.subheader("🛍️ Keranjang")
 
     kode_input = st.text_input("🎟️ Kode Promo")
@@ -314,7 +309,7 @@ if menu == "🛒 Kasir":
             st.session_state.cart.pop(i)
             st.rerun()
 
-    # ================= CEK PROMO =================
+    # ================= PROMO =================
     if kode_input:
         for item in st.session_state.cart:
             if (
@@ -333,15 +328,22 @@ if menu == "🛒 Kasir":
         st.error("❌ Kode promo tidak valid")
 
     total_akhir = int(total - (total * diskon / 100))
-
     st.markdown(f"<div class='total'>Total Setelah Diskon: {rp(total_akhir)}</div>", unsafe_allow_html=True)
 
     # ================= METODE PEMBAYARAN =================
     metode = st.selectbox("Metode Pembayaran", ["Tunai", "QRIS"])
 
+    # 🔥 ambil QRIS dari cart pertama
+    qris_url = None
+    if len(st.session_state.cart) > 0:
+        qris_url = st.session_state.cart[0].get("qris_url")
+
     if metode == "QRIS":
-        qris_url = get_qris_url()
-        st.image(qris_url, caption="Scan QRIS untuk bayar", width=250)
+        if qris_url:
+            st.image(qris_url, caption="Scan QRIS untuk bayar", width=250)
+        else:
+            st.warning("⚠️ QRIS belum tersedia")
+
         st.warning("⚠️ Setelah bayar, klik simpan transaksi")
 
     # ================= PEMBAYARAN =================
@@ -362,7 +364,6 @@ if st.button("💾 Simpan Transaksi", type="primary"):
         st.error("❌ Keranjang kosong!")
         st.stop()
 
-    # 🔥 VALIDASI KHUSUS TUNAI
     if metode == "Tunai":
         if bayar <= 0:
             st.error("❌ Uang bayar belum diisi!")
@@ -375,7 +376,6 @@ if st.button("💾 Simpan Transaksi", type="primary"):
     try:
         order_id = str(uuid.uuid4())
 
-        # 🔥 simpan (bisa tambah kolom metode kalau mau)
         insert_order(order_id, nama, total_akhir)
 
         for item in st.session_state.cart:
@@ -403,12 +403,10 @@ if st.button("💾 Simpan Transaksi", type="primary"):
             kembali
         )
 
-        print_block = f"""
+        st.components.v1.html(f"""
         <div id="printArea">{struk_html}</div>
         <button onclick="window.print()">PRINT</button>
-        """
-
-        st.components.v1.html(print_block, height=500)
+        """, height=500)
 
         pdf = generate_pdf(order_id, nama, st.session_state.cart, total, bayar, kembali)
 
