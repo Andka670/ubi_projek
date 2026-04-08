@@ -330,36 +330,32 @@ if menu == "🛒 Kasir":
     total_akhir = int(total - (total * diskon / 100))
     st.markdown(f"<div class='total'>Total Setelah Diskon: {rp(total_akhir)}</div>", unsafe_allow_html=True)
 
-    # ================= METODE PEMBAYARAN =================
-    metode = st.selectbox("Metode Pembayaran", ["Tunai", "QRIS"])
+# ================= METODE PEMBAYARAN =================
+metode = st.selectbox("Metode Pembayaran", ["Tunai", "QRIS"])
 
-    # 🔥 ambil QRIS dari cart pertama
-    qris_url = None
-    if len(st.session_state.cart) > 0:
-        qris_url = st.session_state.cart[0].get("qris_url")
+# 🔥 ambil QRIS langsung dari produk (bukan cart)
+qris_url = produk.get("qris_url")
 
-    if metode == "QRIS":
+# ================= QRIS =================
+if metode == "QRIS":
 
-    qris_url = produk.get("qris_url")
-
-    if qris_url:
+    if qris_url and str(qris_url).strip() != "":
         st.image(qris_url, caption="Scan QRIS untuk bayar", width=250)
     else:
         st.warning("⚠️ QRIS belum tersedia di produk ini")
 
     st.warning("⚠️ Setelah bayar, klik simpan transaksi")
 
-    # ================= PEMBAYARAN =================
-    if metode == "Tunai":
-        bayar = st.number_input("Bayar", min_value=0)
-        kembali = bayar - total_akhir if bayar >= total_akhir else 0
+# ================= PEMBAYARAN =================
+if metode == "Tunai":
+    bayar = st.number_input("Bayar", min_value=0)
+    kembali = bayar - total_akhir if bayar >= total_akhir else 0
 
-        if bayar >= total_akhir and total > 0:
-            st.success(f"Kembalian: {rp(kembali)}")
-    else:
-        bayar = total_akhir
-        kembali = 0
-
+    if bayar >= total_akhir and total > 0:
+        st.success(f"Kembalian: {rp(kembali)}")
+else:
+    bayar = total_akhir
+    kembali = 0
 # ================= SIMPAN =================
 if st.button("💾 Simpan Transaksi", type="primary"):
 
