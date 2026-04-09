@@ -436,8 +436,10 @@ elif menu == "📦 Produk":
             else:
                 url_img = upload_gambar(img)
 
-                # 🔥 bersihin deskripsi
-                desk_clean = re.sub(r"[`<>]", "", (desk or "")).strip()
+                # 🔥 CLEAN DESKRIPSI SAAT INSERT
+                desk_clean = re.sub(r"<[^>]+>", "", (desk or ""))
+                desk_clean = re.sub(r"```.*?```", "", desk_clean, flags=re.DOTALL)
+                desk_clean = desk_clean.replace("`", "").strip()
 
                 insert_produk({
                     "nama": nama.strip(),
@@ -466,36 +468,36 @@ elif menu == "📦 Produk":
                 continue
 
             id_str = str(item['id'])
-
-            # 🔥 gambar aman
             img = item.get("gambar") or "https://via.placeholder.com/300"
 
-            # 🔥 nama aman
+            # 🔥 SAFE TEXT
             nama_safe = html.escape(item['nama'])
 
-            # 🔥 DESKRIPSI CLEAN (ANTI </div> & ``` )
-            desk_raw = item.get("deskripsi") or "-"
-            desk_clean = re.sub(r"<[^>]*>", "", str(desk_raw))
-            desk_clean = desk_clean.replace("`", "").strip()
+            # 🔥 DESKRIPSI SUPER BERSIH
+            desk_raw = str(item.get("deskripsi") or "")
 
-            if desk_clean == "":
+            desk_clean = re.sub(r"<[^>]+>", "", desk_raw)
+            desk_clean = re.sub(r"```.*?```", "", desk_clean, flags=re.DOTALL)
+            desk_clean = desk_clean.replace("`", "").replace("</div>", "").strip()
+
+            if not desk_clean:
                 desk_clean = "-"
 
             desk_safe = html.escape(desk_clean[:60])
 
-            # 🔥 PROMO VALIDASI KETAT
+            # 🔥 PROMO FIX TOTAL
             promo_html = ""
-
             if (
                 item.get("promo_aktif") is True and
                 item.get("kode_promo") and
-                str(item.get("kode_promo")).strip() != ""
+                str(item.get("kode_promo")).strip() != "" and
+                (item.get("diskon") or 0) > 0
             ):
                 kode = html.escape(item.get("kode_promo"))
-                diskon_val = item.get("diskon") or 0
+                diskon_val = item.get("diskon")
                 promo_html = f"<p>🎟️ Promo: {kode} ({diskon_val}%)</p>"
 
-            # 🔥 HTML CARD AMAN
+            # 🔥 CARD
             html_card = f"""
             <div class="card">
                 <img src="{img}">
@@ -538,7 +540,9 @@ elif menu == "📦 Produk":
                     if img_b:
                         url_img = upload_gambar(img_b)
 
-                    desk_clean = re.sub(r"[`<>]", "", (desk_b or "")).strip()
+                    desk_clean = re.sub(r"<[^>]+>", "", (desk_b or ""))
+                    desk_clean = re.sub(r"```.*?```", "", desk_clean, flags=re.DOTALL)
+                    desk_clean = desk_clean.replace("`", "").strip()
 
                     update_produk(item['id'], {
                         "nama": nama_b.strip(),
