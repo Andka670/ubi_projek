@@ -1,6 +1,6 @@
 import streamlit as st
 from supabase import create_client
-from datetime import datetime
+from datetime import datetime, timedelta
 import uuid
 import pandas as pd
 import streamlit.components.v1 as components
@@ -146,11 +146,13 @@ def get_laporan():
     return supabase.table("pemesanan").select("*").execute().data
 
 def insert_order(order_id, nama, total):
+    now = datetime.utcnow() + timedelta(hours=7)  # WIB
+
     supabase.table("pemesanan").insert({
         "id": order_id,
         "nama_kasir": nama,
         "total": total,
-        "tanggal": datetime.now().isoformat()
+        "tanggal": now.isoformat()
     }).execute()
 
 def insert_detail(data):
@@ -470,10 +472,10 @@ else:
         df = df[df['nama_kasir'] == nama_login]
 
         # ================= FORMAT TANGGAL =================
-        df['tanggal'] = pd.to_datetime(df['tanggal'])
+        df['tanggal'] = pd.to_datetime(df['tanggal']) + pd.Timedelta(hours=7)
 
         # ================= HITUNG WAKTU (AUTO RESET) =================
-        today = pd.Timestamp.now()
+        today = pd.Timestamp.utcnow() + pd.Timedelta(hours=7)
 
         # 🔥 HARI INI
         hari_ini = df[df['tanggal'].dt.date == today.date()]
