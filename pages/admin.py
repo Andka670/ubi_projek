@@ -359,6 +359,9 @@ if menu == "📊 Dashboard":
 # ================= PRODUK =================
 elif menu == "📦 Produk":
 
+    import re
+    import html
+
     # ================= QRIS GLOBAL =================
     st.markdown("## 💳 QRIS Pembayaran")
 
@@ -443,13 +446,13 @@ elif menu == "📦 Produk":
                 url_img = upload_gambar(img)
 
                 insert_produk({
-                    "nama": nama,
+                    "nama": nama.strip(),
                     "harga": harga,
                     "harga_beli": harga_beli,
                     "stok": stok,
-                    "deskripsi": desk,
+                    "deskripsi": (desk or "").strip(),
                     "gambar": url_img,
-                    "kode_promo": (kode_promo or "").upper(),
+                    "kode_promo": (kode_promo.strip().upper() if kode_promo else None),
                     "diskon": diskon or 0,
                     "promo_aktif": promo_aktif
                 })
@@ -471,27 +474,36 @@ elif menu == "📦 Produk":
             id_str = str(item['id'])
             img = item.get("gambar") or "https://via.placeholder.com/300"
 
-            # 🔥 FIX PROMO HTML
-            kode = item.get("kode_promo") or ""
+            # 🔥 AMANKAN DATA
+            nama_safe = html.escape(item['nama'])
+
+            desk_raw = item.get("deskripsi") or "-"
+            desk_clean = re.sub(r"<.*?>", "", desk_raw)  # hapus semua HTML liar
+            desk_safe = html.escape(desk_clean[:60])
+
+            kode = (item.get("kode_promo") or "").strip().upper()
             diskon_val = item.get("diskon") or 0
 
+            # 🔥 PROMO FIX
             promo_html = ""
-            if item.get("promo_aktif") and kode:
+            if item.get("promo_aktif") and kode != "":
                 promo_html = f"<p>🎟️ Promo: {kode} ({diskon_val}%)</p>"
 
-            st.markdown(f"""
+            html_card = f"""
             <div class="card">
                 <img src="{img}">
                 <div class="card-body">
-                    <div class="title">{item['nama']}</div>
+                    <div class="title">{nama_safe}</div>
                     <div class="price">Jual: {rp(item['harga'])}</div>
                     <div class="price">Modal: {rp(item.get('harga_beli',0))}</div>
                     <p>Stok: {item['stok']}</p>
-                    <p>{(item.get('deskripsi') or '-')[:60]}</p>
+                    <p>{desk_safe}</p>
                     {promo_html}
                 </div>
             </div>
-            """, unsafe_allow_html=True)
+            """
+
+            st.markdown(html_card, unsafe_allow_html=True)
 
             col1, col2 = st.columns(2)
 
@@ -523,13 +535,13 @@ elif menu == "📦 Produk":
                             url_img = upload_gambar(img_b)
 
                         update_produk(item['id'], {
-                            "nama": nama_b,
+                            "nama": nama_b.strip(),
                             "harga": harga_b,
                             "harga_beli": harga_beli_b,
                             "stok": stok_b,
-                            "deskripsi": desk_b,
+                            "deskripsi": (desk_b or "").strip(),
                             "gambar": url_img,
-                            "kode_promo": (kode_b or "").upper(),
+                            "kode_promo": (kode_b.strip().upper() if kode_b else None),
                             "diskon": diskon_b or 0,
                             "promo_aktif": promo_b
                         })
