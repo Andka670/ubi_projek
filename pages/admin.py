@@ -553,6 +553,31 @@ elif menu == "📦 Produk":
                         st.success("Produk berhasil diupdate!")
                         st.rerun()
 # ================= TRANSAKSI =================
+# ================= RESET SEMUA TRANSAKSI =================
+st.markdown("## ⚠️ Reset Data Transaksi")
+
+colr1, colr2 = st.columns(2)
+
+with colr1:
+    if st.button("🗑️ Hapus Semua Detail", type="secondary"):
+        try:
+            supabase.table("detail_pemesanan").delete().not_.is_("id", None).execute()
+            st.success("✅ Semua detail_pemesanan berhasil dihapus!")
+            st.rerun()
+        except Exception as e:
+            st.error(f"❌ Gagal hapus detail: {e}")
+
+with colr2:
+    if st.button("🔥 Hapus Semua Transaksi", type="secondary"):
+        try:
+            # WAJIB: hapus detail dulu
+            supabase.table("detail_pemesanan").delete().not_.is_("id", None).execute()
+            supabase.table("pemesanan").delete().not_.is_("id", None).execute()
+
+            st.success("✅ Semua transaksi berhasil dihapus!")
+            st.rerun()
+        except Exception as e:
+            st.error(f"❌ Gagal reset transaksi: {e}")
 elif menu == "🧾 Transaksi":
     data = get_laporan()
 
