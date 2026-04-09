@@ -553,32 +553,48 @@ elif menu == "📦 Produk":
                         st.success("Produk berhasil diupdate!")
                         st.rerun()
 # ================= TRANSAKSI =================
-# ================= RESET SEMUA TRANSAKSI =================
-st.markdown("## ⚠️ Reset Data Transaksi")
-
-colr1, colr2 = st.columns(2)
-
-with colr1:
-    if st.button("🗑️ Hapus Semua Detail", type="secondary"):
-        try:
-            supabase.table("detail_pemesanan").delete().not_.is_("id", None).execute()
-            st.success("✅ Semua detail_pemesanan berhasil dihapus!")
-            st.rerun()
-        except Exception as e:
-            st.error(f"❌ Gagal hapus detail: {e}")
-
-with colr2:
-    if st.button("🔥 Hapus Semua Transaksi", type="secondary"):
-        try:
-            # WAJIB: hapus detail dulu
-            supabase.table("detail_pemesanan").delete().not_.is_("id", None).execute()
-            supabase.table("pemesanan").delete().not_.is_("id", None).execute()
-
-            st.success("✅ Semua transaksi berhasil dihapus!")
-            st.rerun()
-        except Exception as e:
-            st.error(f"❌ Gagal reset transaksi: {e}")
 elif menu == "🧾 Transaksi":
+
+    # ================= RESET =================
+    st.markdown("## ⚠️ Reset Data Transaksi")
+
+    confirm = st.checkbox("Saya yakin ingin menghapus semua data")
+
+    colr1, colr2 = st.columns(2)
+
+    with colr1:
+        if st.button("🗑️ Hapus Semua Detail", type="secondary"):
+            if not confirm:
+                st.warning("Centang konfirmasi dulu!")
+            else:
+                try:
+                    supabase.table("detail_pemesanan")\
+                        .delete().not_.is_("id", None).execute()
+
+                    st.success("✅ Semua detail_pemesanan berhasil dihapus!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Gagal hapus detail: {e}")
+
+    with colr2:
+        if st.button("🔥 Hapus Semua Transaksi", type="secondary"):
+            if not confirm:
+                st.warning("Centang konfirmasi dulu!")
+            else:
+                try:
+                    # hapus detail dulu (WAJIB)
+                    supabase.table("detail_pemesanan")\
+                        .delete().not_.is_("id", None).execute()
+
+                    supabase.table("pemesanan")\
+                        .delete().not_.is_("id", None).execute()
+
+                    st.success("✅ Semua transaksi berhasil dihapus!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Gagal reset transaksi: {e}")
+
+    # ================= DATA =================
     data = get_laporan()
 
     if data:
@@ -588,26 +604,28 @@ elif menu == "🧾 Transaksi":
         detail = supabase.table("detail_pemesanan").select("*").execute().data
         df_detail = pd.DataFrame(detail)
 
-        # ================= AMBIL PEMESANAN (KASIR) =================
-        pemesanan = supabase.table("pemesanan").select("id,nama_kasir").execute().data
+        # ================= AMBIL PEMESANAN =================
+        pemesanan = supabase.table("pemesanan")\
+            .select("id,nama_kasir").execute().data
         df_kasir = pd.DataFrame(pemesanan)
 
         # ================= MERGE =================
-        df_detail = df_detail.merge(
-            df_kasir,
-            left_on="order_id",   # SESUAIKAN kalau beda
-            right_on="id",
-            how="left"
-        )
+        if not df_detail.empty and not df_kasir.empty:
+            df_detail = df_detail.merge(
+                df_kasir,
+                left_on="order_id",
+                right_on="id",
+                how="left"
+            )
 
         # ================= FILTER =================
         st.markdown("## 🔍 Filter Data")
 
         col1, col2 = st.columns(2)
 
-        # list kasir
-        list_kasir = df_detail['nama_kasir'].dropna().unique().tolist()
-        list_kasir.insert(0, "Semua")
+        list_kasir = ["Semua"]
+        if not df_detail.empty and "nama_kasir" in df_detail.columns:
+            list_kasir += df_detail['nama_kasir'].dropna().unique().tolist()
 
         with col1:
             filter_kasir = st.selectbox("Filter Kasir", list_kasir)
@@ -617,39 +635,36 @@ elif menu == "🧾 Transaksi":
 
         st.markdown("## 🧾 Data Transaksi")
 
-        # ================= LOOP TRANSAKSI =================
+        # ================= LOOP =================
         for _, row in df.iterrows():
 
-            # filter detail berdasarkan order_id
-            detail_transaksi = df_detail[df_detail['order_id'] == row['id']]
+            detail_transaksi = df_detail[
+                df_detail['order_id'] == row['id']
+            ] if not df_detail.empty else pd.DataFrame()
 
-            # ambil nama kasir
             nama_kasir = "-"
             if not detail_transaksi.empty:
                 nama_kasir = detail_transaksi.iloc[0].get("nama_kasir", "-")
 
-            # ================= APPLY FILTER =================
+            # FILTER
             if filter_kasir != "Semua" and nama_kasir != filter_kasir:
                 continue
 
             if search_id and search_id not in str(row['id']):
                 continue
 
-            # ================= UI =================
+            # UI
             with st.expander(
                 f"🧾 ID: {row['id']} | 👤 {nama_kasir} | 💰 {rp(row['total'])}"
             ):
-
                 st.write({
                     "Tanggal": row.get("tanggal"),
                     "Total": rp(row.get("total", 0)),
                     "Kasir": nama_kasir
                 })
 
-                # ================= DETAIL =================
                 if not detail_transaksi.empty:
                     st.markdown("### 📦 Detail Pemesanan")
-
                     st.dataframe(
                         detail_transaksi[['produk', 'jumlah', 'subtotal']],
                         use_container_width=True
