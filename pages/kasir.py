@@ -240,9 +240,12 @@ if menu == "🛒 Kasir":
 
     st.subheader("Transaksi")
 
-    # ================= INIT CART =================
+    # ================= INIT SESSION =================
     if "cart" not in st.session_state:
         st.session_state.cart = []
+
+    if "last_struk" not in st.session_state:
+        st.session_state.last_struk = None
 
     produk_list = get_produk()
     nama = get_nama_kasir()
@@ -425,38 +428,67 @@ if menu == "🛒 Kasir":
 
             st.success("Transaksi berhasil!")
 
-            # ================= STRUK =================
-            struk_html = generate_struk_html(
-                order_id,
-                nama,
-                st.session_state.cart,
-                total,
-                diskon,
-                total_akhir,
-                bayar,
-                kembali
-            )
+            # ✅ SIMPAN STRUK KE SESSION
+            st.session_state.last_struk = {
+                "order_id": order_id,
+                "nama": nama,
+                "items": st.session_state.cart.copy(),
+                "total": total,
+                "diskon": diskon,
+                "total_akhir": total_akhir,
+                "bayar": bayar,
+                "kembali": kembali
+            }
 
-            st.components.v1.html(f"""
-            <div id="printArea">{struk_html}</div>
-            <button onclick="window.print()">PRINT</button>
-            """, height=500)
-
-            pdf = generate_pdf(order_id, nama, st.session_state.cart, total, bayar, kembali)
-
-            st.download_button(
-                "Download PDF",
-                data=pdf,
-                file_name=f"struk_{order_id[:8]}.pdf",
-                mime="application/pdf"
-            )
-
+            # RESET CART
             st.session_state.cart = []
             st.rerun()
 
         except Exception as e:
             st.error(f"❌ Gagal simpan: {e}")
             st.stop()
+
+    # ================= TAMPILKAN STRUK =================
+    if st.session_state.last_struk:
+        data = st.session_state.last_struk
+
+        st.subheader("🧾 Struk Terakhir")
+
+        struk_html = generate_struk_html(
+            data["order_id"],
+            data["nama"],
+            data["items"],
+            data["total"],
+            data["diskon"],
+            data["total_akhir"],
+            data["bayar"],
+            data["kembali"]
+        )
+
+        st.components.v1.html(f"""
+        <div id="printArea">{struk_html}</div>
+        <button onclick="window.print()">PRINT</button>
+        """, height=500)
+
+        pdf = generate_pdf(
+            data["order_id"],
+            data["nama"],
+            data["items"],
+            data["total"],
+            data["bayar"],
+            data["kembali"]
+        )
+
+        st.download_button(
+            "Download PDF",
+            data=pdf,
+            file_name=f"struk_{data['order_id'][:8]}.pdf",
+            mime="application/pdf"
+        )
+
+        if st.button("🆕 Transaksi Baru"):
+            st.session_state.last_struk = None
+            st.rerun()
 # ================= LAPORAN =================
 else:
 
