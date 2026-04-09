@@ -367,14 +367,12 @@ elif menu == "📦 Produk":
     qris_url = None
     current_name = None
 
-    # 🔥 filter file valid (hindari .emptyFolderPlaceholder)
     valid_files = [f for f in files if not f["name"].startswith(".")]
 
     if valid_files:
         current_name = valid_files[0]["name"]
         qris_url = supabase.storage.from_("qris").get_public_url(current_name)
 
-    # ================= TAMPILKAN =================
     if qris_url:
         st.image(qris_url, width=200)
         st.caption(f"QRIS Saat Ini: {current_name}")
@@ -393,7 +391,6 @@ elif menu == "📦 Produk":
             st.error("Upload gambar dulu!")
         else:
             try:
-                # 🔥 hapus semua file lama (biar hanya 1 QRIS)
                 old_files = supabase.storage.from_("qris").list()
                 for f in old_files:
                     if not f["name"].startswith("."):
@@ -403,7 +400,6 @@ elif menu == "📦 Produk":
 
             ext = new_qris.name.split('.')[-1]
 
-            # 🔥 pastikan ada ekstensi
             if new_name:
                 if "." not in new_name:
                     file_name = f"{new_name}.{ext}"
@@ -453,8 +449,8 @@ elif menu == "📦 Produk":
                     "stok": stok,
                     "deskripsi": desk,
                     "gambar": url_img,
-                    "kode_promo": kode_promo.upper(),
-                    "diskon": diskon,
+                    "kode_promo": (kode_promo or "").upper(),
+                    "diskon": diskon or 0,
                     "promo_aktif": promo_aktif
                 })
 
@@ -475,6 +471,14 @@ elif menu == "📦 Produk":
             id_str = str(item['id'])
             img = item.get("gambar") or "https://via.placeholder.com/300"
 
+            # 🔥 FIX PROMO HTML
+            kode = item.get("kode_promo") or ""
+            diskon_val = item.get("diskon") or 0
+
+            promo_html = ""
+            if item.get("promo_aktif") and kode:
+                promo_html = f"<p>🎟️ Promo: {kode} ({diskon_val}%)</p>"
+
             st.markdown(f"""
             <div class="card">
                 <img src="{img}">
@@ -483,8 +487,8 @@ elif menu == "📦 Produk":
                     <div class="price">Jual: {rp(item['harga'])}</div>
                     <div class="price">Modal: {rp(item.get('harga_beli',0))}</div>
                     <p>Stok: {item['stok']}</p>
-                    <p>{item.get('deskripsi','-')[:60]}</p>
-                    {f"<p>🎟️ Promo: {item.get('kode_promo')} ({item.get('diskon')}%)</p>" if item.get("promo_aktif") else ""}
+                    <p>{(item.get('deskripsi') or '-')[:60]}</p>
+                    {promo_html}
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -525,8 +529,8 @@ elif menu == "📦 Produk":
                             "stok": stok_b,
                             "deskripsi": desk_b,
                             "gambar": url_img,
-                            "kode_promo": kode_b.upper(),
-                            "diskon": diskon_b,
+                            "kode_promo": (kode_b or "").upper(),
+                            "diskon": diskon_b or 0,
                             "promo_aktif": promo_b
                         })
 
