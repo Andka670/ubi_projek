@@ -454,7 +454,7 @@ elif menu == "📦 Produk":
                     "gambar": url_img,
                     "kode_promo": (kode_promo.strip().upper() if kode_promo else None),
                     "diskon": diskon or 0,
-                    "promo_aktif": promo_aktif
+                    "promo_aktif": bool(promo_aktif)
                 })
 
                 st.success("Produk berhasil ditambahkan!")
@@ -474,20 +474,23 @@ elif menu == "📦 Produk":
             id_str = str(item['id'])
             img = item.get("gambar") or "https://via.placeholder.com/300"
 
-            # 🔥 AMANKAN DATA
+            # 🔥 AMANKAN NAMA
             nama_safe = html.escape(item['nama'])
 
+            # 🔥 BERSIHKAN DESKRIPSI (INI KUNCI HAPUS </div>)
             desk_raw = item.get("deskripsi") or "-"
-            desk_clean = re.sub(r"<.*?>", "", desk_raw)  # hapus semua HTML liar
+            desk_clean = re.sub(r"<.*?>", "", desk_raw)
             desk_safe = html.escape(desk_clean[:60])
 
-            kode = (item.get("kode_promo") or "").strip().upper()
+            # 🔥 VALIDASI PROMO SUPER KETAT
+            promo_html = ""
+
+            promo_aktif = item.get("promo_aktif") is True
+            kode = (item.get("kode_promo") or "").strip()
             diskon_val = item.get("diskon") or 0
 
-            # 🔥 PROMO FIX
-            promo_html = ""
-            if item.get("promo_aktif") and kode != "":
-                promo_html = f"<p>🎟️ Promo: {kode} ({diskon_val}%)</p>"
+            if promo_aktif and kode != "":
+                promo_html = f"<p>🎟️ Promo: {html.escape(kode.upper())} ({diskon_val}%)</p>"
 
             html_card = f"""
             <div class="card">
@@ -543,7 +546,7 @@ elif menu == "📦 Produk":
                             "gambar": url_img,
                             "kode_promo": (kode_b.strip().upper() if kode_b else None),
                             "diskon": diskon_b or 0,
-                            "promo_aktif": promo_b
+                            "promo_aktif": bool(promo_b)
                         })
 
                         st.success("Produk berhasil diupdate!")
