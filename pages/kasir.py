@@ -472,10 +472,10 @@ else:
         df = df[df['nama_kasir'] == nama_login]
 
         # ================= FORMAT TANGGAL =================
-        df['tanggal'] = pd.to_datetime(df['tanggal']) + pd.Timedelta(hours=7)
+        df['tanggal'] = pd.to_datetime(df['tanggal'])
 
         # ================= HITUNG WAKTU (AUTO RESET) =================
-        today = pd.Timestamp.utcnow() + pd.Timedelta(hours=7)
+        today = pd.Timestamp.now()
 
         # 🔥 HARI INI
         hari_ini = df[df['tanggal'].dt.date == today.date()]
