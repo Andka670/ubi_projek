@@ -384,10 +384,7 @@ elif menu == "📦 Produk":
 
     # ================= UPLOAD =================
     new_qris = st.file_uploader("Upload / Ganti QRIS", type=["png", "jpg", "jpeg"])
-    new_name = st.text_input(
-        "Nama File QRIS (opsional)",
-        value=current_name if current_name else ""
-    )
+    new_name = st.text_input("Nama File QRIS (opsional)", value=current_name if current_name else "")
 
     if st.button("💾 Simpan QRIS", type="primary"):
         if not new_qris:
@@ -403,13 +400,9 @@ elif menu == "📦 Produk":
 
             ext = new_qris.name.split('.')[-1]
 
-            if new_name:
-                if "." not in new_name:
-                    file_name = f"{new_name}.{ext}"
-                else:
-                    file_name = new_name
-            else:
-                file_name = f"qris.{ext}"
+            file_name = new_name if new_name else f"qris.{ext}"
+            if "." not in file_name:
+                file_name = f"{file_name}.{ext}"
 
             supabase.storage.from_("qris").upload(
                 file_name,
@@ -438,23 +431,24 @@ elif menu == "📦 Produk":
         if st.button("Simpan Produk", type="primary"):
             if not nama:
                 st.error("Nama wajib diisi!")
-            elif harga <= 0:
-                st.error("Harga jual harus lebih dari 0!")
-            elif harga_beli <= 0:
-                st.error("Harga beli harus lebih dari 0!")
+            elif harga <= 0 or harga_beli <= 0:
+                st.error("Harga harus > 0!")
             else:
                 url_img = upload_gambar(img)
+
+                # 🔥 bersihin deskripsi
+                desk_clean = re.sub(r"[`<>]", "", (desk or "")).strip()
 
                 insert_produk({
                     "nama": nama.strip(),
                     "harga": harga,
                     "harga_beli": harga_beli,
                     "stok": stok,
-                    "deskripsi": (desk or "").strip(),
+                    "deskripsi": desk_clean,
                     "gambar": url_img,
-                    "kode_promo": (kode_promo.strip().upper() if kode_promo else None),
+                    "kode_promo": kode_promo.strip().upper() if kode_promo else None,
                     "diskon": diskon or 0,
-                    "promo_aktif": bool(promo_aktif)
+                    "promo_aktif": bool(kode_promo and promo_aktif)
                 })
 
                 st.success("Produk berhasil ditambahkan!")
@@ -472,26 +466,36 @@ elif menu == "📦 Produk":
                 continue
 
             id_str = str(item['id'])
+
+            # 🔥 gambar aman
             img = item.get("gambar") or "https://via.placeholder.com/300"
 
-            # 🔥 AMANKAN NAMA
+            # 🔥 nama aman
             nama_safe = html.escape(item['nama'])
 
-            # 🔥 BERSIHKAN DESKRIPSI (INI KUNCI HAPUS </div>)
+            # 🔥 DESKRIPSI CLEAN (ANTI </div> & ``` )
             desk_raw = item.get("deskripsi") or "-"
-            desk_clean = re.sub(r"<.*?>", "", desk_raw)
+            desk_clean = re.sub(r"<[^>]*>", "", str(desk_raw))
+            desk_clean = desk_clean.replace("`", "").strip()
+
+            if desk_clean == "":
+                desk_clean = "-"
+
             desk_safe = html.escape(desk_clean[:60])
 
-            # 🔥 VALIDASI PROMO SUPER KETAT
+            # 🔥 PROMO VALIDASI KETAT
             promo_html = ""
 
-            promo_aktif = item.get("promo_aktif") is True
-            kode = (item.get("kode_promo") or "").strip()
-            diskon_val = item.get("diskon") or 0
+            if (
+                item.get("promo_aktif") is True and
+                item.get("kode_promo") and
+                str(item.get("kode_promo")).strip() != ""
+            ):
+                kode = html.escape(item.get("kode_promo"))
+                diskon_val = item.get("diskon") or 0
+                promo_html = f"<p>🎟️ Promo: {kode} ({diskon_val}%)</p>"
 
-            if promo_aktif and kode != "":
-                promo_html = f"<p>🎟️ Promo: {html.escape(kode.upper())} ({diskon_val}%)</p>"
-
+            # 🔥 HTML CARD AMAN
             html_card = f"""
             <div class="card">
                 <img src="{img}">
@@ -530,27 +534,26 @@ elif menu == "📦 Produk":
                 promo_b = st.checkbox("Promo Aktif", value=item.get("promo_aktif",False), key="pb"+id_str)
 
                 if st.button("Update", key="u"+id_str, type="primary"):
-                    if not nama_b:
-                        st.error("Nama tidak boleh kosong!")
-                    else:
-                        url_img = item.get("gambar")
-                        if img_b:
-                            url_img = upload_gambar(img_b)
+                    url_img = item.get("gambar")
+                    if img_b:
+                        url_img = upload_gambar(img_b)
 
-                        update_produk(item['id'], {
-                            "nama": nama_b.strip(),
-                            "harga": harga_b,
-                            "harga_beli": harga_beli_b,
-                            "stok": stok_b,
-                            "deskripsi": (desk_b or "").strip(),
-                            "gambar": url_img,
-                            "kode_promo": (kode_b.strip().upper() if kode_b else None),
-                            "diskon": diskon_b or 0,
-                            "promo_aktif": bool(promo_b)
-                        })
+                    desk_clean = re.sub(r"[`<>]", "", (desk_b or "")).strip()
 
-                        st.success("Produk berhasil diupdate!")
-                        st.rerun()
+                    update_produk(item['id'], {
+                        "nama": nama_b.strip(),
+                        "harga": harga_b,
+                        "harga_beli": harga_beli_b,
+                        "stok": stok_b,
+                        "deskripsi": desk_clean,
+                        "gambar": url_img,
+                        "kode_promo": kode_b.strip().upper() if kode_b else None,
+                        "diskon": diskon_b or 0,
+                        "promo_aktif": bool(kode_b and promo_b)
+                    })
+
+                    st.success("Produk berhasil diupdate!")
+                    st.rerun()
 # ================= TRANSAKSI =================
 elif menu == "🧾 Transaksi":
     data = get_laporan()
