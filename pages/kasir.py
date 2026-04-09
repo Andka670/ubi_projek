@@ -278,15 +278,18 @@ if menu == "🛒 Kasir":
             st.error("❌ Stok tidak cukup!")
             st.stop()
 
+        harga = float(produk_db['harga'])
+        subtotal = harga * int(qty)
+
         st.session_state.cart.append({
             "id": produk_db['id'],
             "nama": produk_db['nama'],
-            "harga": int(produk_db['harga']),
+            "harga": harga,
             "qty": int(qty),
-            "subtotal": int(produk_db['harga']) * int(qty),
+            "subtotal": subtotal,
             "stok": stok_terbaru,
             "kode_promo": produk_db.get("kode_promo"),
-            "diskon": produk_db.get("diskon", 0),
+            "diskon": float(produk_db.get("diskon", 0) or 0),
             "promo_aktif": produk_db.get("promo_aktif", False)
         })
 
@@ -296,11 +299,11 @@ if menu == "🛒 Kasir":
     # ================= KERANJANG =================
     st.subheader("🛍️ Keranjang")
 
-    total = 0
-    diskon = 0
+    total = 0.0
+    diskon = 0.0
 
     for i, item in enumerate(st.session_state.cart):
-        total += int(item['subtotal'])
+        total += float(item['subtotal'])
 
         st.markdown(f"""
         <div class="card">
@@ -335,7 +338,7 @@ if menu == "🛒 Kasir":
                 and item.get("promo_aktif")
                 and item.get("kode_promo", "").upper() == kode_input.upper()
             ):
-                diskon = int(item.get("diskon", 0))
+                diskon = float(item.get("diskon", 0) or 0)
                 break
 
     # ================= TOTAL =================
@@ -346,13 +349,13 @@ if menu == "🛒 Kasir":
     elif kode_input != "-- Pilih Promo --":
         st.error("❌ Promo tidak valid")
 
-    total_akhir = int(total - (total * diskon / 100))
+    total_akhir = total - (total * diskon / 100)
     st.markdown(f"<div class='total'>Total Setelah Diskon: {rp(total_akhir)}</div>", unsafe_allow_html=True)
 
     # ================= METODE =================
     metode = st.selectbox("Metode Pembayaran", ["Tunai", "QRIS"])
 
-    # ================= QRIS DINAMIS =================
+    # ================= QRIS =================
     qris_url = None
 
     try:
@@ -363,7 +366,6 @@ if menu == "🛒 Kasir":
     valid_files = [f for f in files if not f["name"].startswith(".")]
 
     if valid_files:
-        # ambil file terbaru
         valid_files = sorted(valid_files, key=lambda x: x.get("created_at", ""), reverse=True)
         file_name = valid_files[0]["name"]
         qris_url = supabase.storage.from_("qris").get_public_url(file_name)
@@ -378,14 +380,14 @@ if menu == "🛒 Kasir":
 
     # ================= PEMBAYARAN =================
     if metode == "Tunai":
-        bayar = st.number_input("Bayar", min_value=0)
-        kembali = bayar - total_akhir if bayar >= total_akhir else 0
+        bayar = st.number_input("Bayar", min_value=0.0)
+        kembali = bayar - total_akhir if bayar >= total_akhir else 0.0
 
         if bayar >= total_akhir and total > 0:
             st.success(f"Kembalian: {rp(kembali)}")
     else:
         bayar = total_akhir
-        kembali = 0
+        kembali = 0.0
 
     # ================= SIMPAN =================
     if st.button("💾 Simpan Transaksi", type="primary"):
@@ -412,9 +414,9 @@ if menu == "🛒 Kasir":
                 insert_detail({
                     "order_id": order_id,
                     "produk": item['nama'],
-                    "harga": int(item['harga']),
+                    "harga": float(item['harga']),
                     "jumlah": int(item['qty']),
-                    "subtotal": int(item['subtotal'])
+                    "subtotal": float(item['subtotal'])
                 })
 
                 update_stok(item['id'], item['stok'] - item['qty'])
